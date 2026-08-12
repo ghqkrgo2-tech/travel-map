@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>우리 여행 지도</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --red: #E85D5D;
+      --red-soft: #F5B8B8;
+      --blue: #5B8DE8;
+      --blue-soft: #B8CDF5;
+      --gold: #F2C14E;
+      --bg: #FFF9F2;
+      --card: #FFFFFF;
+      --text: #5C4948;
+      --sub: #B0A09E;
+      --line: #F0E5DC;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden
+    }
+
+    body {
+      font-family: 'Gowun Dodum', sans-serif;
+      background: var(--bg);
+      color: var(--text)
+    }
+
+    h1,
+    h2,
+    h3,
+    .jua {
+      font-family: 'Jua', sans-serif;
+      font-weight: 400
+    }
+
+    button {
+      font-family: inherit;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: inherit
+    }
+
+    input,
+    select,
+    textarea {
+      font-family: inherit;
+      font-size: 15px;
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      width: 100%;
+      background: #fff;
+      color: var(--text)
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--blue-soft)
+    }
+
+    /* ── PIN 잠금 ── */
+    #lock {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px
+    }
+
+    #lock .logo {
+      font-size: 44px
+    }
+
+    #lock h1 {
+      font-size: 26px
+    }
+
+    #lock .dots {
+      display: flex;
+      gap: 14px;
+      height: 16px
+    }
+
+    #lock .dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--line);
+      transition: background .15s
+    }
+
+    #lock .dot.on {
+      background: var(--red)
+    }
+
+    #lock .pad {
+      display: grid;
+      grid-template-columns: repeat(3, 72px);
+      gap: 12px;
+      margin-top: 8px
+    }
+
+    #lock .pad button {
+      height: 60px;
+      border-radius: 20px;
+      background: var(--card);
+      font-size: 22px;
+      font-family: 'Jua';
+      box-shadow: 0 2px 8px rgba(92, 73, 72, .07)
+    }
+
+    #lock .pad button:active {
+      background: var(--line)
+    }
+
+    #lock .msg {
+      color: var(--red);
+      font-size: 13px;
+      height: 16px
+    }
+
+    /* ── 헤더/통계 ── */
+    #app {
+      display: none;
+      flex-direction: column;
+      height: 100%
+    }
+
+    header {
+      padding: 14px 16px 8px;
+      flex-shrink: 0
+    }
+
+    header .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    header h1 {
+      font-size: 22px
+    }
+
+    #stats {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px
+    }
+
+    #stats::-webkit-scrollbar {
+      display: none
+    }
+
+    .stat {
+      flex-shrink: 0;
+      background: var(--card);
+      border-radius: 14px;
+      padding: 7px 12px;
+      font-size: 12.5px;
+      box-shadow: 0 1px 5px rgba(92, 73, 72, .06);
+      white-space: nowrap
+    }
+
+    .stat b {
+      font-family: 'Jua';
+      font-size: 14px
+    }
+
+    #syncdot {
+      font-size: 11px;
+      color: var(--sub)
+    }
+
+    /* ── 지도 ── */
+    #mapwrap {
+      flex: 1;
+      position: relative;
+      z-index: 0;
+      border-radius: 20px 20px 0 0;
+      overflow: hidden;
+      margin: 6px 8px 0;
+      box-shadow: 0 -2px 12px rgba(92, 73, 72, .05)
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
+      background: #EAF4FA
+    }
+
+    .leaflet-container {
+      font-family: 'Gowun Dodum'
+    }
+
+    .name-label {
+      background: rgba(255, 255, 255, .88);
+      border: none;
+      border-radius: 8px;
+      padding: 1px 6px;
+      font-size: 10px;
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+      white-space: nowrap;
+      font-family: 'Gowun Dodum'
+    }
+
+    .name-label:before {
+      display: none
+    }
+
+    .crown-icon {
+      font-size: 16px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, .2)
+    }
+
+    .city-pin {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .3)
+    }
+
+    /* ── 하단 탭 ── */
+    nav {
+      display: flex;
+      background: var(--card);
+      border-top: 1.5px solid var(--line);
+      flex-shrink: 0;
+      padding-bottom: env(safe-area-inset-bottom)
+    }
+
+    nav button {
+      flex: 1;
+      padding: 10px 0 8px;
+      font-size: 11.5px;
+      color: var(--sub);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px
+    }
+
+    nav button .ic {
+      font-size: 21px
+    }
+
+    nav button.on {
+      color: var(--red)
+    }
+
+    /* ── 바텀시트 ── */
+    .sheet-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(92, 73, 72, .35);
+      z-index: 100;
+      display: none
+    }
+
+    .sheet-bg.show {
+      display: block
+    }
+
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: -100%;
+      max-height: 82%;
+      background: var(--bg);
+      border-radius: 24px 24px 0 0;
+      z-index: 101;
+      transition: bottom .25s ease;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: env(safe-area-inset-bottom)
+    }
+
+    .sheet.show {
+      bottom: 0
+    }
+
+    .sheet .grab {
+      width: 40px;
+      height: 4px;
+      background: var(--line);
+      border-radius: 2px;
+      margin: 10px auto 4px;
+      flex-shrink: 0
+    }
+
+    .sheet .body {
+      overflow-y: auto;
+      padding: 8px 18px 24px
+    }
+
+    .sheet h2 {
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 10px;
+      color: #fff;
+      font-family: 'Gowun Dodum'
+    }
+
+    .badge.red {
+      background: var(--red)
+    }
+
+    .badge.blue {
+      background: var(--blue)
+    }
+
+    .badge.wish {
+      background: var(--gold)
+    }
+
+    .badge.none {
+      background: var(--sub)
+    }
+
+    /* 기록 카드 */
+    .rec {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-top: 10px;
+      box-shadow: 0 1px 6px rgba(92, 73, 72, .06)
+    }
+
+    .rec .r1 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .rec .city {
+      font-family: 'Jua';
+      font-size: 16px
+    }
+
+    .rec .who {
+      font-size: 11.5px;
+      color: #fff;
+      border-radius: 9px;
+      padding: 2px 8px
+    }
+
+    .rec .meta {
+      font-size: 12.5px;
+      color: var(--sub);
+      margin-top: 3px
+    }
+
+    .rec .memo {
+      font-size: 14px;
+      margin-top: 6px;
+      line-height: 1.45
+    }
+
+    .rec a {
+      color: var(--blue);
+      font-size: 13px;
+      text-decoration: none
+    }
+
+    .rec .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px
+    }
+
+    .rec .actions button {
+      font-size: 12px;
+      color: var(--sub)
+    }
+
+    /* 버튼 */
+    .btnrow {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px
+    }
+
+    .btn {
+      flex: 1;
+      padding: 13px;
+      border-radius: 14px;
+      font-family: 'Jua';
+      font-size: 15px;
+      text-align: center
+    }
+
+    .btn.primary {
+      background: var(--red);
+      color: #fff
+    }
+
+    .btn.blue {
+      background: var(--blue);
+      color: #fff
+    }
+
+    .btn.ghost {
+      background: var(--card);
+      color: var(--text);
+      border: 1.5px solid var(--line)
+    }
+
+    .btn.gold {
+      background: #FDF3DC;
+      color: #B8860B;
+      border: 1.5px solid var(--gold)
+    }
+
+    .btn:active {
+      opacity: .85
+    }
+
+    /* 폼 */
+    .form label {
+      display: block;
+      font-size: 13px;
+      color: var(--sub);
+      margin: 14px 0 5px
+    }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap
+    }
+
+    .chip {
+      padding: 9px 16px;
+      border-radius: 14px;
+      background: var(--card);
+      border: 1.5px solid var(--line);
+      font-size: 14px
+    }
+
+    .chip.on.me {
+      background: var(--red);
+      border-color: var(--red);
+      color: #fff
+    }
+
+    .chip.on.pt {
+      background: var(--red);
+      border-color: var(--red);
+      color: #fff
+    }
+
+    .chip.on.both {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff
+    }
+
+    .stars {
+      display: flex;
+      gap: 6px;
+      font-size: 28px
+    }
+
+    .stars span {
+      filter: grayscale(1);
+      opacity: .4
+    }
+
+    .stars span.on {
+      filter: none;
+      opacity: 1
+    }
+
+    .geo-result {
+      background: #F3F8FF;
+      border: 1.5px solid var(--blue-soft);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13.5px;
+      margin-top: 8px;
+      display: none
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--sub);
+      margin-top: 6px;
+      line-height: 1.5
+    }
+
+    /* 기록 전체 탭 */
+    #listview {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 60;
+      display: none;
+      flex-direction: column
+    }
+
+    #listview.show {
+      display: flex
+    }
+
+    #listview .lhead {
+      padding: 16px 18px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center
+    }
+
+    #listview .lbody {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 16px 90px
+    }
+
+    .yearhead {
+      font-family: 'Jua';
+      font-size: 17px;
+      margin: 16px 4px 2px;
+      color: var(--red)
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 90px;
+      background: var(--text);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      z-index: 300;
+      opacity: 0;
+      transition: opacity .25s;
+      pointer-events: none;
+      max-width: 85%;
+      text-align: center
+    }
+
+    .toast.show {
+      opacity: 1
+    }
+
+    .spin {
+      display: inline-block;
+      animation: sp 1s linear infinite
+    }
+
+    @keyframes sp {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 잠금 화면 -->
+  <div id="lock">
+    <div class="logo">🗺️💕</div>
+    <h1>우리 여행 지도</h1>
+    <div class="dots">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+    <div class="msg" id="lockmsg"></div>
+    <div class="pad">
+      <button onclick="pinKey(1)">1</button><button onclick="pinKey(2)">2</button><button onclick="pinKey(3)">3</button>
+      <button onclick="pinKey(4)">4</button><button onclick="pinKey(5)">5</button><button onclick="pinKey(6)">6</button>
+      <button onclick="pinKey(7)">7</button><button onclick="pinKey(8)">8</button><button onclick="pinKey(9)">9</button>
+      <button></button><button onclick="pinKey(0)">0</button><button onclick="pinKey(-1)">⌫</button>
+    </div>
+  </div>
+
+  <!-- 앱 본체 -->
+  <div id="app">
+    <header>
+      <div class="top">
+        <h1 id="title">🌍 우리 여행 지도</h1>
+        <span id="syncdot">●</span>
+      </div>
+      <div id="stats"></div>
+    </header>
+    <div id="mapwrap">
+      <div id="map"></div>
+    </div>
+    <nav>
+      <button id="tab-world" class="on" onclick="switchTab('world')"><span class="ic">🌍</span>세계</button>
+      <button id="tab-korea" onclick="switchTab('korea')"><span class="ic">🇰🇷</span>한국</button>
+      <button id="tab-list" onclick="openList()"><span class="ic">📖</span>기록</button>
+    </nav>
+  </div>
+
+  <!-- 나라/지역 상세 시트 -->
+  <div class="sheet-bg" id="sheetbg" onclick="closeSheets()"></div>
+  <div class="sheet" id="detailSheet">
+    <div class="grab"></div>
+    <div class="body" id="detailBody"></div>
+  </div>
+
+  <!-- 기록 추가/수정 시트 -->
+  <div class="sheet" id="formSheet">
+    <div class="grab"></div>
+    <div class="body">
+      <h2 id="formTitle">기록 추가</h2>
+      <div class="form">
+        <div id="cityField">
+          <label>도시 이름</label>
+          <div style="display:flex;gap:8px">
+            <input id="f-city" placeholder="예: 이스탄불, Kota Kinabalu">
+            <button class="btn ghost" style="flex:0 0 76px;padding:10px" onclick="geocodeCity()">찾기</button>
+          </div>
+          <div class="geo-result" id="geoResult"></div>
+          <div class="hint">도시 이름을 입력하고 [찾기]를 누르면 지도 위치를 자동으로 찾아요. 한글/영문 모두 가능!</div>
+        </div>
+        <label>누가 다녀왔나요?</label>
+        <div class="chips" id="whoChips">
+          <button class="chip me" data-who="me" onclick="setWho('me')">나 (윤호)</button>
+          <button class="chip pt" data-who="partner" onclick="setWho('partner')">가진</button>
+          <button class="chip both" data-who="both" onclick="setWho('both')">같이 💕</button>
+        </div>
+        <label>언제?</label>
+        <input id="f-date" type="month">
+        <label>별점</label>
+        <div class="stars" id="starRow">
+          <span onclick="setStar(1)">⭐</span><span onclick="setStar(2)">⭐</span><span onclick="setStar(3)">⭐</span><span
+            onclick="setStar(4)">⭐</span><span onclick="setStar(5)">⭐</span>
+        </div>
+        <label>한 줄 소감</label>
+        <input id="f-memo" placeholder="예: 여기 물회 미쳤음">
+        <label>구글포토 앨범 링크 (선택)</label>
+        <input id="f-link" placeholder="https://photos.app.goo.gl/...">
+        <div class="btnrow">
+          <button class="btn ghost" onclick="closeSheets()">취소</button>
+          <button class="btn primary" id="saveBtn" onclick="saveRecord()">저장하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 기록 전체 리스트 -->
+  <div id="listview">
+    <div class="lhead">
+      <h1 style="font-size:22px">📖 우리의 기록</h1><button class="btn ghost" style="flex:0;padding:8px 16px"
+        onclick="closeList()">닫기</button>
+    </div>
+    <div class="lbody" id="listBody"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+  <script>
+    /* ═══════════ 설정 (여기만 수정하면 됨) ═══════════ */
+    const CONFIG = {
+      PIN: "0305",              // 잠금 비밀번호 4자리
+      NAME_ME: "윤호",           // 나
+      NAME_PARTNER: "가진",      // 여자친구
+      API_URL: "https://script.google.com/macros/s/AKfycbyLelO3E-4xG22-3uAYwL72ZHbjEnEc1F2AW-HzuN_0ihHhosdOMHMzdcHBaLDIrpYX/exec"               // Apps Script 웹앱 주소 (세팅가이드 참고). 비워두면 이 폰에만 저장됨
+    };
+    /* ═══════════════════════════════════════════════ */
+
+    /* 세계: Natural Earth 10m (최고 해상도). 폰에서 느리면 아래 URL의 10m을 50m으로 바꾸면 가벼워짐 */
+    const WORLD_TOPO = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-10m.json";
+    const KOREA_GEO = "https://raw.githubusercontent.com/southkorea/southkorea-maps/master/kostat/2013/json/skorea_municipalities_geo_simple.json";
+    /* 새 지도 데이터의 나라 이름 → 기존 이름 체계로 통일 */
+    const ALIAS = { "Czechia": "Czech Republic", "Bosnia and Herz.": "Bosnia and Herzegovina", "North Macedonia": "Macedonia", "Serbia": "Republic of Serbia", "Tanzania": "United Republic of Tanzania", "Dem. Rep. Congo": "Democratic Republic of the Congo", "Congo": "Republic of the Congo", "Côte d'Ivoire": "Ivory Coast", "Guinea-Bissau": "Guinea Bissau", "Timor-Leste": "East Timor", "S. Sudan": "South Sudan", "W. Sahara": "Western Sahara", "Dominican Rep.": "Dominican Republic", "Falkland Is.": "Falkland Islands", "Solomon Is.": "Solomon Islands", "eSwatini": "Swaziland", "Bahamas": "The Bahamas", "Türkiye": "Turkey", "Myanmar (Burma)": "Myanmar" };
+    const METRO = { "11": "서울", "21": "부산", "22": "대구", "23": "인천", "24": "광주", "25": "대전", "26": "울산", "29": "세종" };
+    const KR_NAME = {}; // code prefix → 표시 이름 캐시
+    const WORLD_CENTER = {};
+    /* 나라 영문명 → [한글명, 수도 위도, 수도 경도] (라벨은 수도 위치에 표시) */
+    const COUNTRY = {
+      "South Korea": ["대한민국", 37.57, 126.98], "North Korea": ["북한", 39.03, 125.75], "Japan": ["일본", 35.68, 139.69], "China": ["중국", 39.90, 116.40], "Taiwan": ["대만", 25.03, 121.56], "Mongolia": ["몽골", 47.92, 106.92],
+      "Vietnam": ["베트남", 21.03, 105.85], "Thailand": ["태국", 13.75, 100.50], "Laos": ["라오스", 17.97, 102.60], "Cambodia": ["캄보디아", 11.55, 104.92], "Myanmar": ["미얀마", 19.75, 96.10], "Malaysia": ["말레이시아", 3.14, 101.69], "Indonesia": ["인도네시아", -6.20, 106.85], "Philippines": ["필리핀", 14.60, 120.98], "Brunei": ["브루나이", 4.94, 114.95], "East Timor": ["동티모르", -8.55, 125.56],
+      "India": ["인도", 28.61, 77.21], "Nepal": ["네팔", 27.72, 85.32], "Bhutan": ["부탄", 27.47, 89.64], "Bangladesh": ["방글라데시", 23.81, 90.41], "Sri Lanka": ["스리랑카", 6.93, 79.85], "Pakistan": ["파키스탄", 33.69, 73.06], "Afghanistan": ["아프가니스탄", 34.53, 69.17],
+      "Kazakhstan": ["카자흐스탄", 51.17, 71.45], "Uzbekistan": ["우즈베키스탄", 41.30, 69.24], "Turkmenistan": ["투르크메니스탄", 37.95, 58.38], "Kyrgyzstan": ["키르기스스탄", 42.87, 74.59], "Tajikistan": ["타지키스탄", 38.56, 68.79],
+      "Turkey": ["터키", 39.93, 32.86], "Iran": ["이란", 35.69, 51.39], "Iraq": ["이라크", 33.31, 44.36], "Syria": ["시리아", 33.51, 36.28], "Lebanon": ["레바논", 33.89, 35.50], "Israel": ["이스라엘", 31.77, 35.21], "Jordan": ["요르단", 31.95, 35.93], "Saudi Arabia": ["사우디아라비아", 24.71, 46.68], "Yemen": ["예멘", 15.35, 44.21], "Oman": ["오만", 23.59, 58.41], "United Arab Emirates": ["아랍에미리트", 24.45, 54.38], "Qatar": ["카타르", 25.29, 51.53], "Kuwait": ["쿠웨이트", 29.38, 47.99], "Georgia": ["조지아", 41.72, 44.79], "Armenia": ["아르메니아", 40.18, 44.51], "Azerbaijan": ["아제르바이잔", 40.41, 49.87], "Cyprus": ["키프로스", 35.19, 33.38],
+      "Russia": ["러시아", 55.75, 37.62], "Ukraine": ["우크라이나", 50.45, 30.52], "Belarus": ["벨라루스", 53.90, 27.57], "Moldova": ["몰도바", 47.01, 28.86], "Poland": ["폴란드", 52.23, 21.01], "Czech Republic": ["체코", 50.08, 14.44], "Slovakia": ["슬로바키아", 48.15, 17.11], "Hungary": ["헝가리", 47.50, 19.04], "Romania": ["루마니아", 44.43, 26.10], "Bulgaria": ["불가리아", 42.70, 23.32], "Greece": ["그리스", 37.98, 23.73], "Albania": ["알바니아", 41.33, 19.82], "Macedonia": ["북마케도니아", 41.99, 21.43], "Republic of Serbia": ["세르비아", 44.79, 20.45], "Croatia": ["크로아티아", 45.81, 15.98], "Bosnia and Herzegovina": ["보스니아", 43.86, 18.41], "Slovenia": ["슬로베니아", 46.06, 14.51], "Montenegro": ["몬테네그로", 42.44, 19.26], "Kosovo": ["코소보", 42.66, 21.17],
+      "Germany": ["독일", 52.52, 13.40], "France": ["프랑스", 48.86, 2.35], "United Kingdom": ["영국", 51.51, -0.13], "Ireland": ["아일랜드", 53.35, -6.26], "Netherlands": ["네덜란드", 52.37, 4.90], "Belgium": ["벨기에", 50.85, 4.35], "Luxembourg": ["룩셈부르크", 49.61, 6.13], "Switzerland": ["스위스", 46.95, 7.45], "Austria": ["오스트리아", 48.21, 16.37], "Italy": ["이탈리아", 41.90, 12.50], "Spain": ["스페인", 40.42, -3.70], "Portugal": ["포르투갈", 38.72, -9.14], "Denmark": ["덴마크", 55.68, 12.57], "Norway": ["노르웨이", 59.91, 10.75], "Sweden": ["스웨덴", 59.33, 18.07], "Finland": ["핀란드", 60.17, 24.94], "Iceland": ["아이슬란드", 64.15, -21.94], "Estonia": ["에스토니아", 59.44, 24.75], "Latvia": ["라트비아", 56.95, 24.11], "Lithuania": ["리투아니아", 54.69, 25.28], "Malta": ["몰타", 35.90, 14.51],
+      "United States of America": ["미국", 38.90, -77.04], "Canada": ["캐나다", 45.42, -75.70], "Mexico": ["멕시코", 19.43, -99.13], "Guatemala": ["과테말라", 14.63, -90.51], "Belize": ["벨리즈", 17.25, -88.77], "Honduras": ["온두라스", 14.07, -87.19], "El Salvador": ["엘살바도르", 13.69, -89.22], "Nicaragua": ["니카라과", 12.11, -86.24], "Costa Rica": ["코스타리카", 9.93, -84.08], "Panama": ["파나마", 8.98, -79.52], "Cuba": ["쿠바", 23.11, -82.37], "Jamaica": ["자메이카", 17.98, -76.80], "Haiti": ["아이티", 18.54, -72.34], "Dominican Republic": ["도미니카공화국", 18.49, -69.90], "The Bahamas": ["바하마", 25.05, -77.34], "Puerto Rico": ["푸에르토리코", 18.47, -66.11], "Trinidad and Tobago": ["트리니다드토바고", 10.65, -61.51], "Greenland": ["그린란드", 64.18, -51.72],
+      "Brazil": ["브라질", -15.79, -47.88], "Argentina": ["아르헨티나", -34.60, -58.38], "Chile": ["칠레", -33.45, -70.67], "Peru": ["페루", -12.05, -77.04], "Colombia": ["콜롬비아", 4.71, -74.07], "Venezuela": ["베네수엘라", 10.49, -66.88], "Ecuador": ["에콰도르", -0.18, -78.47], "Bolivia": ["볼리비아", -16.49, -68.12], "Paraguay": ["파라과이", -25.26, -57.58], "Uruguay": ["우루과이", -34.90, -56.16], "Guyana": ["가이아나", 6.80, -58.16], "Suriname": ["수리남", 5.85, -55.20], "Falkland Islands": ["포클랜드", -51.70, -57.85],
+      "Egypt": ["이집트", 30.04, 31.24], "Libya": ["리비아", 32.89, 13.19], "Tunisia": ["튀니지", 36.81, 10.18], "Algeria": ["알제리", 36.75, 3.06], "Morocco": ["모로코", 34.02, -6.84], "Western Sahara": ["서사하라", 27.13, -13.20], "Sudan": ["수단", 15.50, 32.56], "South Sudan": ["남수단", 4.86, 31.57], "Ethiopia": ["에티오피아", 9.03, 38.74], "Somalia": ["소말리아", 2.05, 45.32], "Kenya": ["케냐", -1.29, 36.82], "United Republic of Tanzania": ["탄자니아", -6.16, 35.75], "Uganda": ["우간다", 0.35, 32.58], "Rwanda": ["르완다", -1.94, 30.06], "Burundi": ["부룬디", -3.38, 29.36], "Democratic Republic of the Congo": ["콩고민주공화국", -4.32, 15.31], "Republic of the Congo": ["콩고", -4.20, 15.27], "Gabon": ["가봉", 0.39, 9.45], "Cameroon": ["카메룬", 3.87, 11.52], "Nigeria": ["나이지리아", 9.06, 7.49], "Niger": ["니제르", 13.51, 2.11], "Chad": ["차드", 12.13, 15.06], "Mali": ["말리", 12.64, -8.00], "Mauritania": ["모리타니", 18.07, -15.96], "Senegal": ["세네갈", 14.69, -17.44], "Guinea": ["기니", 9.64, -13.58], "Guinea Bissau": ["기니비사우", 11.86, -15.60], "Sierra Leone": ["시에라리온", 8.47, -13.23], "Liberia": ["라이베리아", 6.29, -10.76], "Ivory Coast": ["코트디부아르", 6.82, -5.28], "Ghana": ["가나", 5.60, -0.19], "Togo": ["토고", 6.13, 1.22], "Benin": ["베냉", 6.50, 2.60], "Burkina Faso": ["부르키나파소", 12.37, -1.52], "Gambia": ["감비아", 13.45, -16.58], "Angola": ["앙골라", -8.84, 13.23], "Zambia": ["잠비아", -15.39, 28.32], "Zimbabwe": ["짐바브웨", -17.83, 31.05], "Mozambique": ["모잠비크", -25.97, 32.58], "Malawi": ["말라위", -13.96, 33.77], "Madagascar": ["마다가스카르", -18.88, 47.51], "Namibia": ["나미비아", -22.56, 17.08], "Botswana": ["보츠와나", -24.63, 25.92], "South Africa": ["남아프리카공화국", -25.75, 28.19], "Lesotho": ["레소토", -29.31, 27.48], "Swaziland": ["에스와티니", -26.31, 31.13], "Eritrea": ["에리트레아", 15.34, 38.93], "Djibouti": ["지부티", 11.59, 43.15],
+      "Australia": ["호주", -35.28, 149.13], "New Zealand": ["뉴질랜드", -41.29, 174.78], "Papua New Guinea": ["파푸아뉴기니", -9.44, 147.18], "Fiji": ["피지", -18.14, 178.44], "Solomon Islands": ["솔로몬제도", -9.43, 159.96], "Vanuatu": ["바누아투", -17.73, 168.33], "New Caledonia": ["뉴칼레도니아", -22.26, 166.46]
+    };
+    const koName = n => (COUNTRY[n] || [n])[0];
+    /* 축소 상태에서도 이름을 보여줄 큰 나라들 */
+    const MAJOR = new Set(["러시아", "캐나다", "미국", "중국", "브라질", "호주", "인도", "아르헨티나", "카자흐스탄", "알제리", "콩고민주공화국", "사우디아라비아", "멕시코", "인도네시아", "수단", "리비아", "이란", "몽골", "페루", "차드", "니제르", "앙골라", "말리", "남아프리카공화국", "콜롬비아", "에티오피아", "볼리비아", "이집트", "탄자니아", "나이지리아", "베네수엘라", "파키스탄", "터키", "칠레", "프랑스", "스페인", "우크라이나", "스웨덴", "독일", "일본", "핀란드", "폴란드", "이탈리아", "영국", "노르웨이", "태국", "미얀마", "그린란드", "대한민국"]);
+
+    let state = { records: [], wishes: [] };
+    // record: {id, scope:'world'|'korea', country, city, lat, lng, who, date, rating, memo, link}
+    // wish:   {id, scope, name}
+    let map, worldLayer, koreaLayer, markerGroup, labelGroup, unitLabelGroup;
+    let curTab = "world", worldGeoData = null, koreaGeoData = null, KR_CENTER = {}, selName = null;
+    let editing = null;         // 수정 중인 record id
+    let formCtx = {};           // {scope, country} 폼 컨텍스트
+    let pinBuf = "", geoPick = null, pickedWho = null, pickedStar = 0;
+
+    /* ── PIN ── */
+    function pinKey(n) {
+      if (n === -1) { pinBuf = pinBuf.slice(0, -1); }
+      else if (pinBuf.length < 4) { pinBuf += n; }
+      document.querySelectorAll('#lock .dot').forEach((d, i) => d.classList.toggle('on', i < pinBuf.length));
+      if (pinBuf.length === 4) {
+        if (pinBuf === CONFIG.PIN) {
+          localStorage.setItem('tm_unlocked', '1');
+          unlock();
+        } else {
+          document.getElementById('lockmsg').textContent = '앗, 비밀번호가 달라요 🥲';
+          pinBuf = "";
+          setTimeout(() => {
+            document.querySelectorAll('#lock .dot').forEach(d => d.classList.remove('on'));
+            document.getElementById('lockmsg').textContent = '';
+          }, 700);
+        }
+      }
+    }
+    function unlock() {
+      document.getElementById('lock').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      initApp();
+    }
+
+    /* ── 저장소 (시트 또는 로컬) ── */
+    async function loadData() {
+      if (CONFIG.API_URL) {
+        try {
+          setSync('sync');
+          const r = await fetch(CONFIG.API_URL, { method: 'POST', body: JSON.stringify({ action: 'load', pin: CONFIG.PIN }) });
+          const j = await r.json();
+          if (j.ok) { state = j.data; setSync('ok'); return; }
+          throw new Error(j.error || 'load fail');
+        } catch (e) { setSync('err'); toast('불러오기 실패 — 저장된 내용으로 표시해요'); }
+      }
+      const local = localStorage.getItem('tm_state');
+      if (local) state = JSON.parse(local);
+      setSync(CONFIG.API_URL ? 'err' : 'local');
+    }
+    let saveTimer = null;
+    function persist() {
+      localStorage.setItem('tm_state', JSON.stringify(state));
+      if (!CONFIG.API_URL) return;
+      setSync('sync');
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        try {
+          const r = await fetch(CONFIG.API_URL, { method: 'POST', body: JSON.stringify({ action: 'save', pin: CONFIG.PIN, data: state }) });
+          const j = await r.json();
+          setSync(j.ok ? 'ok' : 'err');
+        } catch (e) { setSync('err'); }
+      }, 600);
+    }
+    function setSync(s) {
+      const el = document.getElementById('syncdot');
+      if (s === 'ok') { el.textContent = '● 공유중'; el.style.color = '#7BC49A'; }
+      else if (s === 'sync') { el.innerHTML = '<span class="spin">↻</span> 저장중'; el.style.color = 'var(--sub)'; }
+      else if (s === 'err') { el.textContent = '● 오프라인'; el.style.color = 'var(--gold)'; }
+      else { el.textContent = '● 내 폰에만 저장'; el.style.color = 'var(--sub)'; }
+    }
+
+    /* ── 초기화 ── */
+    async function initApp() {
+      map = L.map('map', { zoomControl: false, attributionControl: true, worldCopyJump: true, preferCanvas: true });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+        { attribution: '© OpenStreetMap © CARTO', maxZoom: 12 }).addTo(map);
+      markerGroup = L.layerGroup().addTo(map);
+      labelGroup = L.layerGroup().addTo(map);
+      unitLabelGroup = L.layerGroup().addTo(map);
+      map.on('zoomend', () => {
+        if (curTab === 'korea') renderKoreaUnitLabels();
+        else renderWorldLabels();
+      });
+      await loadData();
+      await loadWorld();
+      renderAll();
+    }
+    async function loadWorld() {
+      if (!worldGeoData) {
+        toast('세계 지도를 불러오는 중… 🌍 (처음 한 번만 몇 초 걸려요)');
+        const r = await fetch(WORLD_TOPO);
+        const topo = await r.json();
+        worldGeoData = topojson.feature(topo, topo.objects.countries);
+        // 남극은 제외 (렌더링 문제 + 여행 기록 대상 아님)
+        worldGeoData.features = worldGeoData.features.filter(f => f.properties.name !== 'Antarctica');
+        worldGeoData.features.forEach(f => {
+          const raw = f.properties.name;
+          f.properties.name = ALIAS[raw] || raw;      // 이름 체계 통일
+          fixAntimeridian(f);                          // 날짜변경선 가로줄 보정
+          try {
+            const c = COUNTRY[f.properties.name];
+            WORLD_CENTER[f.properties.name] = (c && c.length > 2) ? L.latLng(c[1], c[2]) : countryLabelPos(f);
+          } catch (e) { }
+        });
+      }
+    }
+    /* 경도 180도(날짜변경선)를 걸치는 도형이 지도를 가로지르는 선으로 그려지는 것 방지 */
+    function fixAntimeridian(f) {
+      const g = f.geometry;
+      if (!g) return;
+      const polys = g.type === 'Polygon' ? [g.coordinates] : (g.type === 'MultiPolygon' ? g.coordinates : []);
+      polys.forEach(rings => {
+        rings.forEach(ring => {
+          let min = 180, max = -180;
+          for (const pt of ring) { if (pt[0] < min) min = pt[0]; if (pt[0] > max) max = pt[0]; }
+          if (max - min > 180) {            // 한 도형이 지도 양끝에 걸쳐 있음 → 서쪽 좌표를 동쪽으로 이어붙임
+            for (const pt of ring) { if (pt[0] < 0) pt[0] += 360; }
+          }
+        });
+      });
+    }
+    /* 라벨 위치: 영토 조각 중 가장 큰 땅(본토)의 무게중심. 애매한 나라는 수동 좌표 */
+    const LABEL_FIX = {
+      "United States of America": [39.5, -98.5], "Canada": [56.5, -104], "Russia": [60, 96],
+      "Norway": [61.5, 9], "Vietnam": [20.8, 105.3], "Croatia": [45.7, 16.0], "Chile": [-33.8, -70.8],
+      "Indonesia": [-0.5, 113.5], "Japan": [36.5, 138.5], "France": [46.8, 2.4], "United Kingdom": [52.8, -1.7],
+      "New Zealand": [-43.4, 171.8], "Philippines": [15.8, 121.2], "Italy": [43.5, 11.9], "Greece": [39.4, 22.1],
+      "Portugal": [39.8, -8.1], "Malaysia": [4.2, 102.2], "South Korea": [36.5, 127.9]
+    };
+    function countryLabelPos(f) {
+      const fix = LABEL_FIX[f.properties.name];
+      if (fix) return L.latLng(fix[0], fix[1]);
+      const g = f.geometry;
+      const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+      let best = null, bestArea = -1;
+      polys.forEach(p => {
+        const ring = p[0]; // 바깥 테두리
+        let area = 0, cx = 0, cy = 0;
+        for (let i = 0; i < ring.length - 1; i++) {
+          const [x1, y1] = ring[i], [x2, y2] = ring[i + 1];
+          const cross = x1 * y2 - x2 * y1;
+          area += cross; cx += (x1 + x2) * cross; cy += (y1 + y2) * cross;
+        }
+        area /= 2;
+        const abs = Math.abs(area);
+        if (abs > bestArea && abs > 0) {
+          bestArea = abs;
+          best = L.latLng(cy / (6 * area), cx / (6 * area));
+        }
+      });
+      return best || L.geoJSON(f).getBounds().getCenter();
+    }
+    async function loadKorea() {
+      if (!koreaGeoData) {
+        toast('한국 지도를 불러오는 중… 🚚');
+        const r = await fetch(KOREA_GEO); koreaGeoData = await r.json();
+        koreaGeoData.features.forEach(f => {
+          const code = String(f.properties.code || '');
+          const pref = code.slice(0, 2);
+          let unit = METRO[pref] || f.properties.name;
+          // 일반구는 시 단위로 통합: "수원시장안구" → "수원시"
+          if (!METRO[pref]) {
+            const m = String(unit).match(/^(.+?시)./);
+            if (m && unit.endsWith('구')) unit = m[1];
+          }
+          f.properties.unit = unit;
+        });
+        // 지역(색칠 단위)별 중심좌표 미리 계산 — 이름 라벨용
+        const groups = {};
+        koreaGeoData.features.forEach(f => {
+          (groups[f.properties.unit] = groups[f.properties.unit] || []).push(f);
+        });
+        Object.keys(groups).forEach(u => {
+          KR_CENTER[u] = L.geoJSON({ type: 'FeatureCollection', features: groups[u] }).getBounds().getCenter();
+        });
+      }
+    }
+
+    /* ── 탭 ── */
+    async function switchTab(t) {
+      curTab = t;
+      document.getElementById('tab-world').classList.toggle('on', t === 'world');
+      document.getElementById('tab-korea').classList.toggle('on', t === 'korea');
+      document.getElementById('title').textContent = t === 'world' ? '🌍 우리 여행 지도' : '🇰🇷 우리나라 정복 지도';
+      if (t === 'korea') await loadKorea();
+      renderAll();
+    }
+
+    /* ── 상태 계산 ── */
+    function recsFor(scope, name) {
+      return state.records.filter(r => r.scope === scope && (scope === 'world' ? r.country === name : r.city === name));
+    }
+    function unitStatus(scope, name) {
+      const recs = recsFor(scope, name);
+      if (!recs.length) return null;
+      return recs.some(r => r.who === 'both') ? 'both' : 'solo';
+    }
+    function unitNames(scope, name) {
+      const recs = recsFor(scope, name);
+      const s = new Set();
+      recs.forEach(r => {
+        if (r.who === 'me') s.add(CONFIG.NAME_ME);
+        else if (r.who === 'partner') s.add(CONFIG.NAME_PARTNER);
+        else { s.add(CONFIG.NAME_ME); s.add(CONFIG.NAME_PARTNER); }
+      });
+      return [...s].join('·');
+    }
+    function tripCount(scope, name) {
+      return new Set(recsFor(scope, name).map(r => r.date || r.id)).size;
+    }
+    function isWish(scope, name) {
+      return state.wishes.some(w => w.scope === scope && w.name === name);
+    }
+
+    /* ── 렌더 ── */
+    function renderAll() { renderStats(); renderMap(); }
+    function styleFor(scope, name) {
+      const st = unitStatus(scope, name);
+      const wish = isWish(scope, name);
+      let s;
+      if (st === 'both') s = { fillColor: '#5B8DE8', fillOpacity: .75, color: '#fff', weight: .7 };
+      else if (st === 'solo') s = { fillColor: '#E85D5D', fillOpacity: .72, color: '#fff', weight: .7 };
+      else if (wish) s = { fillColor: '#F2C14E', fillOpacity: .45, color: '#D9A82F', weight: 1.2, dashArray: '4' };
+      else s = { fillColor: '#DCD2C8', fillOpacity: scope === 'world' ? .35 : .5, color: '#fff', weight: .6 };
+      if (name === selName) {
+        s.weight = 3.5; s.color = '#5C4948';
+        if (!st && !wish) { s.fillColor = '#FFD97A'; s.fillOpacity = .55; }  // 안 가본 나라도 노랗게 확 밝힘
+        else { s.fillOpacity = Math.min((s.fillOpacity || 0.5) + .2, .95); }
+      }
+      return s;
+    }
+    function highlight(scope, name) {
+      selName = name;
+      const lay = scope === 'world' ? worldLayer : koreaLayer;
+      if (!lay) return;
+      lay.eachLayer(l => {
+        const n = scope === 'world' ? l.feature.properties.name : l.feature.properties.unit;
+        l.setStyle(styleFor(scope, n));
+        if (n === name && l.bringToFront) l.bringToFront();
+      });
+    }
+    function renderMap() {
+      markerGroup.clearLayers(); labelGroup.clearLayers(); unitLabelGroup.clearLayers();
+      if (worldLayer) { map.removeLayer(worldLayer); worldLayer = null; }
+      if (koreaLayer) { map.removeLayer(koreaLayer); koreaLayer = null; }
+
+      if (curTab === 'world') {
+        map.setMinZoom(2); map.setMaxZoom(10);
+        worldLayer = L.geoJSON(worldGeoData, {
+          style: f => styleFor('world', f.properties.name),
+          onEachFeature: (f, layer) => {
+            layer.on('click', () => { highlight('world', f.properties.name); openDetail('world', f.properties.name, layer); });
+          }
+        }).addTo(map);
+        if (!map._setView) { map.setView([25, 60], 2); map._setView = true; }
+        renderWorldLabels();
+        state.records.filter(r => r.scope === 'world' && r.lat).forEach(r => {
+          const color = r.who === 'both' ? '#3B6BC9' : '#C93B3B';
+          const m = L.marker([r.lat, r.lng], { icon: L.divIcon({ className: '', html: `<div class="city-pin" style="background:${color}"></div>`, iconSize: [12, 12], iconAnchor: [6, 6] }) });
+          m.bindTooltip(`${r.city} ${r.rating ? '⭐'.repeat(r.rating) : ''}`, { direction: 'top', offset: [0, -6] });
+          m.on('click', () => openDetail('world', r.country));
+          m.addTo(markerGroup);
+        });
+      } else {
+        map.setMinZoom(6); map.setMaxZoom(12);
+        koreaLayer = L.geoJSON(koreaGeoData, {
+          style: f => styleFor('korea', f.properties.unit),
+          onEachFeature: (f, layer) => {
+            layer.on('click', () => { highlight('korea', f.properties.unit); openDetail('korea', f.properties.unit, layer); });
+          }
+        }).addTo(map);
+        map.setView([36.3, 127.8], 7);
+        renderKoreaUnitLabels();
+      }
+    }
+    /* 세계 한글 나라명 라벨: 기본은 방문/위시+큰 나라, 확대할수록 전체 표시 */
+    function renderWorldLabels() {
+      labelGroup.clearLayers();
+      if (curTab !== 'world' || !worldGeoData) return;
+      const z = map.getZoom();
+      worldGeoData.features.forEach(f => {
+        const name = f.properties.name;
+        const center = WORLD_CENTER[name];
+        if (!center) return;
+        const st = unitStatus('world', name);
+        const wish = isWish('world', name);
+        const kn = koName(name);
+        const show = st || wish || (z >= 5) || (z >= 2.5 && MAJOR.has(kn));
+        if (!show) return;
+        let txt = '';
+        if (tripCount('world', name) >= 2) txt += '👑 ';
+        txt += kn;
+        if (st === 'solo') txt += `<br><span style="color:#C93B3B">${unitNames('world', name)}</span>`;
+        L.marker(center, { icon: L.divIcon({ className: 'name-label', html: txt, iconSize: null }), interactive: false }).addTo(labelGroup);
+      });
+    }
+    /* 한국 지역명 라벨: 확대하면 전 지역, 축소 상태에선 색칠/위시 지역만 */
+    function renderKoreaUnitLabels() {
+      unitLabelGroup.clearLayers();
+      if (curTab !== 'korea' || !koreaGeoData) return;
+      const showAll = map.getZoom() >= 9;
+      Object.keys(KR_CENTER).forEach(unit => {
+        const st = unitStatus('korea', unit);
+        const wish = isWish('korea', unit);
+        if (!showAll && !st && !wish) return;
+        let txt = '';
+        if (tripCount('korea', unit) >= 2) txt += '👑 ';
+        txt += unit;
+        if (st === 'solo') txt += `<br><span style="color:#C93B3B">${unitNames('korea', unit)}</span>`;
+        L.marker(KR_CENTER[unit], {
+          icon: L.divIcon({ className: 'name-label', html: txt, iconSize: null }),
+          interactive: false
+        }).addTo(unitLabelGroup);
+      });
+    }
+    function renderStats() {
+      const w = state.records.filter(r => r.scope === 'world');
+      const countries = new Set(w.map(r => r.country));
+      const bothCountries = new Set(w.filter(r => r.who === 'both').map(r => r.country));
+      const cities = new Set(w.map(r => r.city));
+      const kr = new Set(state.records.filter(r => r.scope === 'korea').map(r => r.city));
+      document.getElementById('stats').innerHTML = `
+    <div class="stat">💕 같이 간 나라 <b>${bothCountries.size}</b></div>
+    <div class="stat">🌍 방문 나라 <b>${countries.size}</b></div>
+    <div class="stat">📍 도시 <b>${cities.size}</b></div>
+    <div class="stat">🇰🇷 국내 <b>${kr.size}곳</b></div>
+    <div class="stat">⭐ 위시 <b>${state.wishes.length}</b></div>`;
+    }
+
+    /* ── 상세 시트 ── */
+    let curDetail = null;
+    function openDetail(scope, name) {
+      curDetail = { scope, name };
+      const recs = recsFor(scope, name).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      const st = unitStatus(scope, name);
+      const wish = isWish(scope, name);
+      const badge = st === 'both' ? '<span class="badge blue">같이 다녀옴 💕</span>'
+        : st === 'solo' ? `<span class="badge red">${unitNames(scope, name)} 다녀옴</span>`
+          : wish ? '<span class="badge wish">가고 싶은 곳 ⭐</span>'
+            : '<span class="badge none">아직 안 가봄</span>';
+      const crown = tripCount(scope, name) >= 2 ? ' 👑' : '';
+      let html = `<h2>${name}${crown} ${badge}</h2>`;
+      if (!recs.length) html += `<p class="hint" style="margin-top:8px">아직 기록이 없어요. ${scope === 'world' ? '다녀온 도시를 추가해보세요!' : '다녀왔다면 기록을 남겨보세요!'}</p>`;
+      recs.forEach(r => {
+        const whoTxt = r.who === 'both' ? '같이 💕' : (r.who === 'me' ? CONFIG.NAME_ME : CONFIG.NAME_PARTNER);
+        const whoBg = r.who === 'both' ? 'var(--blue)' : 'var(--red)';
+        html += `<div class="rec">
+      <div class="r1"><span class="city">📍 ${r.city}</span><span class="who" style="background:${whoBg}">${whoTxt}</span></div>
+      <div class="meta">${r.date ? r.date.replace('-', '년 ') + '월' : ''} ${r.rating ? ' · ' + '⭐'.repeat(r.rating) : ''}</div>
+      ${r.memo ? `<div class="memo">${esc(r.memo)}</div>` : ''}
+      ${r.link ? `<div style="margin-top:5px"><a href="${esc(r.link)}" target="_blank">📷 사진 보러가기</a></div>` : ''}
+      <div class="actions"><button onclick="editRecord('${r.id}')">수정</button><button onclick="deleteRecord('${r.id}')">삭제</button></div>
+    </div>`;
+      });
+      html += `<div class="btnrow">
+    <button class="btn gold" onclick="toggleWish()">${wish ? '⭐ 위시 해제' : '⭐ 가고 싶어요'}</button>
+    <button class="btn primary" onclick="openForm()">✏️ 기록 추가</button>
+  </div>`;
+      document.getElementById('detailBody').innerHTML = html;
+      document.getElementById('sheetbg').classList.add('show');
+      document.getElementById('detailSheet').classList.add('show');
+    }
+    function toggleWish() {
+      const { scope, name } = curDetail;
+      const i = state.wishes.findIndex(w => w.scope === scope && w.name === name);
+      if (i >= 0) { state.wishes.splice(i, 1); toast('위시리스트에서 뺐어요'); }
+      else { state.wishes.push({ id: uid(), scope, name }); toast('위시리스트에 담았어요 ⭐'); }
+      persist(); renderAll(); openDetail(scope, name);
+    }
+
+    /* ── 기록 폼 ── */
+    function openForm() {
+      editing = null;
+      formCtx = { ...curDetail };
+      document.getElementById('formTitle').textContent = `${formCtx.name} 기록 추가`;
+      document.getElementById('cityField').style.display = formCtx.scope === 'world' ? 'block' : 'none';
+      resetForm();
+      document.getElementById('detailSheet').classList.remove('show');
+      document.getElementById('formSheet').classList.add('show');
+    }
+    function editRecord(id) {
+      const r = state.records.find(x => x.id === id);
+      if (!r) return;
+      editing = id;
+      formCtx = { scope: r.scope, country: r.country };
+      document.getElementById('formTitle').textContent = `${r.city} 기록 수정`;
+      document.getElementById('cityField').style.display = 'none';
+      resetForm();
+      setWho(r.who); setStar(r.rating || 0);
+      document.getElementById('f-date').value = r.date || '';
+      document.getElementById('f-memo').value = r.memo || '';
+      document.getElementById('f-link').value = r.link || '';
+      document.getElementById('detailSheet').classList.remove('show');
+      document.getElementById('formSheet').classList.add('show');
+    }
+    function resetForm() {
+      geoPick = null; pickedWho = null; pickedStar = 0;
+      ['f-city', 'f-date', 'f-memo', 'f-link'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('geoResult').style.display = 'none';
+      document.querySelectorAll('#whoChips .chip').forEach(c => c.classList.remove('on'));
+      document.querySelectorAll('#starRow span').forEach(s => s.classList.remove('on'));
+    }
+    function setWho(w) {
+      pickedWho = w;
+      document.querySelectorAll('#whoChips .chip').forEach(c => c.classList.toggle('on', c.dataset.who === w));
+    }
+    function setStar(n) {
+      pickedStar = n;
+      document.querySelectorAll('#starRow span').forEach((s, i) => s.classList.toggle('on', i < n));
+    }
+    async function geocodeCity() {
+      const q = document.getElementById('f-city').value.trim();
+      if (!q) { toast('도시 이름을 입력해주세요'); return; }
+      const box = document.getElementById('geoResult');
+      box.style.display = 'block'; box.innerHTML = '<span class="spin">↻</span> 위치를 찾는 중…';
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=ko&q=${encodeURIComponent(q + ', ' + formCtx.name)}`;
+        let res = await (await fetch(url)).json();
+        if (!res.length) {
+          res = await (await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=ko&q=${encodeURIComponent(q)}`)).json();
+        }
+        if (!res.length) { box.innerHTML = '못 찾았어요 🥲 영문으로 시도해보세요'; geoPick = null; return; }
+        geoPick = { lat: +res[0].lat, lng: +res[0].lon };
+        box.innerHTML = `✅ 찾았어요: <b>${esc(res[0].display_name.split(',').slice(0, 2).join(','))}</b>`;
+      } catch (e) { box.innerHTML = '검색 오류 — 잠시 후 다시 시도해주세요'; geoPick = null; }
+    }
+    function saveRecord() {
+      if (!pickedWho) { toast('누가 다녀왔는지 골라주세요!'); return; }
+      if (editing) {
+        const r = state.records.find(x => x.id === editing);
+        r.who = pickedWho; r.rating = pickedStar;
+        r.date = document.getElementById('f-date').value;
+        r.memo = document.getElementById('f-memo').value.trim();
+        r.link = document.getElementById('f-link').value.trim();
+      } else {
+        let city, lat = null, lng = null;
+        if (formCtx.scope === 'world') {
+          city = document.getElementById('f-city').value.trim();
+          if (!city) { toast('도시 이름을 입력해주세요!'); return; }
+          if (geoPick) { lat = geoPick.lat; lng = geoPick.lng; }
+        } else {
+          city = formCtx.name;
+        }
+        state.records.push({
+          id: uid(), scope: formCtx.scope,
+          country: formCtx.scope === 'world' ? formCtx.name : '대한민국',
+          city, lat, lng, who: pickedWho, rating: pickedStar,
+          date: document.getElementById('f-date').value,
+          memo: document.getElementById('f-memo').value.trim(),
+          link: document.getElementById('f-link').value.trim()
+        });
+      }
+      persist(); renderAll(); closeSheets();
+      toast(editing ? '수정했어요 ✏️' : '기록했어요! 지도가 칠해졌어요 🎨');
+      editing = null;
+    }
+    function deleteRecord(id) {
+      if (!confirm('이 기록을 지울까요?')) return;
+      state.records = state.records.filter(r => r.id !== id);
+      persist(); renderAll();
+      openDetail(curDetail.scope, curDetail.name);
+      toast('지웠어요');
+    }
+
+    /* ── 전체 기록 리스트 ── */
+    function openList() {
+      const body = document.getElementById('listBody');
+      const recs = [...state.records].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      if (!recs.length) {
+        body.innerHTML = '<p class="hint" style="margin-top:30px;text-align:center">아직 기록이 없어요.<br>지도에서 나라를 눌러 첫 여행을 기록해보세요! 🗺️</p>';
+      } else {
+        let html = '', lastYear = '';
+        recs.forEach(r => {
+          const y = r.date ? r.date.slice(0, 4) + '년' : '날짜 미입력';
+          if (y !== lastYear) { html += `<div class="yearhead">${y}</div>`; lastYear = y; }
+          const whoTxt = r.who === 'both' ? '같이 💕' : (r.who === 'me' ? CONFIG.NAME_ME : CONFIG.NAME_PARTNER);
+          const whoBg = r.who === 'both' ? 'var(--blue)' : 'var(--red)';
+          const place = r.scope === 'world' ? `${r.country} · ${r.city}` : `🇰🇷 ${r.city}`;
+          html += `<div class="rec">
+        <div class="r1"><span class="city">${place}</span><span class="who" style="background:${whoBg}">${whoTxt}</span></div>
+        <div class="meta">${r.date ? r.date.replace('-', '.') + ' · ' : ''}${r.rating ? '⭐'.repeat(r.rating) : ''}</div>
+        ${r.memo ? `<div class="memo">${esc(r.memo)}</div>` : ''}
+      </div>`;
+        });
+        // 위시리스트 섹션
+        if (state.wishes.length) {
+          html += `<div class="yearhead" style="color:#B8860B">⭐ 가고 싶은 곳</div>`;
+          state.wishes.forEach(w => {
+            html += `<div class="rec"><div class="r1"><span class="city">${w.scope === 'korea' ? '🇰🇷 ' : ''}${w.name}</span></div></div>`;
+          });
+        }
+        body.innerHTML = html;
+      }
+      document.getElementById('listview').classList.add('show');
+    }
+    function closeList() { document.getElementById('listview').classList.remove('show'); }
+
+    /* ── 공통 ── */
+    function closeSheets() {
+      document.getElementById('sheetbg').classList.remove('show');
+      document.getElementById('detailSheet').classList.remove('show');
+      document.getElementById('formSheet').classList.remove('show');
+      if (selName) {
+        const prev = selName; selName = null;
+        const lay = curTab === 'world' ? worldLayer : koreaLayer;
+        if (lay) lay.eachLayer(l => {
+          const n = curTab === 'world' ? l.feature.properties.name : l.feature.properties.unit;
+          if (n === prev) l.setStyle(styleFor(curTab, n));
+        });
+      }
+    }
+    function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    let toastTimer;
+    function toast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    /* 시작: 이전에 잠금 해제한 폰이면 바로 입장 */
+    if (localStorage.getItem('tm_unlocked') === '1') unlock();
+  </script>
+</body>
+
+</html>
