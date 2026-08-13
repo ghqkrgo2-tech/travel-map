@@ -565,7 +565,8 @@ function unitNames(scope, name){
   return [...s].join('·');
 }
 function tripCount(scope, name){
-  return new Set(recsFor(scope, name).map(r=>r.date||r.id)).size;
+  // 방문 횟수 = 그 나라/도시의 기록 개수 (날짜 유무와 무관)
+  return recsFor(scope, name).length;
 }
 function isWish(scope, name){
   return state.wishes.some(w=>w.scope===scope && w.name===name);
