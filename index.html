@@ -72,7 +72,16 @@ header h1{font-size:22px}
 .plan-card .actions button{font-size:12px;color:#5C8A72}
 .summary-line{margin-top:10px;font-size:14px;color:var(--text)}
 .summary-line b{font-family:'Jua';color:var(--me)}
+.wishwho{display:flex;gap:8px;margin:6px 0 4px}
+.wishwho button{flex:1;color:#fff;border-radius:12px;padding:12px 0;font-family:'Jua';font-size:14px}
 .hint2{font-size:11.5px;color:var(--sub)}
+.stat.rank{background:linear-gradient(135deg,#FFF3D4,#FFE9B8);font-family:'Jua'}
+.rank-sec{margin-top:14px}
+.rank-h{font-family:'Jua';font-size:15px;color:var(--text);margin-bottom:6px}
+.rank-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border-radius:12px;margin-bottom:6px;cursor:pointer}
+.rank-row .rk{font-size:18px;width:24px;text-align:center}
+.rank-row .rn{flex:1;font-size:14px;color:var(--text)}
+.rank-row .rc{font-family:'Jua';color:var(--me);font-size:14px}
 
 /* ── 지도 ── */
 #mapwrap{flex:1;position:relative;z-index:0;border-radius:20px 20px 0 0;overflow:hidden;margin:6px 8px 0;box-shadow:0 -2px 12px rgba(92,73,72,.05)}
@@ -297,6 +306,8 @@ const COUNTRY = {
 "Egypt":["이집트",30.04,31.24],"Libya":["리비아",32.89,13.19],"Tunisia":["튀니지",36.81,10.18],"Algeria":["알제리",36.75,3.06],"Morocco":["모로코",34.02,-6.84],"Western Sahara":["서사하라",27.13,-13.20],"Sudan":["수단",15.50,32.56],"South Sudan":["남수단",4.86,31.57],"Ethiopia":["에티오피아",9.03,38.74],"Somalia":["소말리아",2.05,45.32],"Kenya":["케냐",-1.29,36.82],"United Republic of Tanzania":["탄자니아",-6.16,35.75],"Uganda":["우간다",0.35,32.58],"Rwanda":["르완다",-1.94,30.06],"Burundi":["부룬디",-3.38,29.36],"Democratic Republic of the Congo":["콩고민주공화국",-4.32,15.31],"Republic of the Congo":["콩고",-4.20,15.27],"Gabon":["가봉",0.39,9.45],"Cameroon":["카메룬",3.87,11.52],"Nigeria":["나이지리아",9.06,7.49],"Niger":["니제르",13.51,2.11],"Chad":["차드",12.13,15.06],"Mali":["말리",12.64,-8.00],"Mauritania":["모리타니",18.07,-15.96],"Senegal":["세네갈",14.69,-17.44],"Guinea":["기니",9.64,-13.58],"Guinea Bissau":["기니비사우",11.86,-15.60],"Sierra Leone":["시에라리온",8.47,-13.23],"Liberia":["라이베리아",6.29,-10.76],"Ivory Coast":["코트디부아르",6.82,-5.28],"Ghana":["가나",5.60,-0.19],"Togo":["토고",6.13,1.22],"Benin":["베냉",6.50,2.60],"Burkina Faso":["부르키나파소",12.37,-1.52],"Gambia":["감비아",13.45,-16.58],"Angola":["앙골라",-8.84,13.23],"Zambia":["잠비아",-15.39,28.32],"Zimbabwe":["짐바브웨",-17.83,31.05],"Mozambique":["모잠비크",-25.97,32.58],"Malawi":["말라위",-13.96,33.77],"Madagascar":["마다가스카르",-18.88,47.51],"Namibia":["나미비아",-22.56,17.08],"Botswana":["보츠와나",-24.63,25.92],"South Africa":["남아프리카공화국",-25.75,28.19],"Lesotho":["레소토",-29.31,27.48],"Swaziland":["에스와티니",-26.31,31.13],"Eritrea":["에리트레아",15.34,38.93],"Djibouti":["지부티",11.59,43.15],
 "Australia":["호주",-35.28,149.13],"New Zealand":["뉴질랜드",-41.29,174.78],"Papua New Guinea":["파푸아뉴기니",-9.44,147.18],"Fiji":["피지",-18.14,178.44],"Solomon Islands":["솔로몬제도",-9.43,159.96],"Vanuatu":["바누아투",-17.73,168.33],"New Caledonia":["뉴칼레도니아",-22.26,166.46]};
 const koName = n => (COUNTRY[n]||[n])[0];
+function wishWhoLabel(w){ return w.who==='me'?CONFIG.NAME_ME : w.who==='partner'?CONFIG.NAME_PARTNER : w.who==='both'?'같이':''; }
+function wishWhoColor(w){ return w.who==='me'?'var(--me)' : w.who==='partner'?'var(--pt)' : 'var(--both)'; }
 function toggleSearch(){
   const bar = document.getElementById('searchbar');
   const btn = document.getElementById('searchBtn');
@@ -451,7 +462,7 @@ function setSync(s){
 /* ── 초기화 ── */
 async function initApp(){
   map = L.map('map', {zoomControl:false, attributionControl:true, preferCanvas:true,
-    maxBounds:[[-85,-180],[85,180]], maxBoundsViscosity:1.0});
+    maxBounds:[[-90,-200],[90,200]], maxBoundsViscosity:0.5});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
     {attribution:'© OpenStreetMap © CARTO', maxZoom:12, noWrap:true}).addTo(map);
   markerGroup = L.layerGroup().addTo(map);
@@ -730,7 +741,7 @@ function renderMap(){
   if(koreaLayer){ map.removeLayer(koreaLayer); koreaLayer=null; }
 
   if(curTab==='world'){
-    map.setMinZoom(2); map.setMaxZoom(10);
+    map.setMinZoom(1); map.setMaxZoom(10);
     worldLayer = L.geoJSON(worldGeoData, {
       style: f => styleFor('world', f.properties.name),
       onEachFeature: (f, layer) => {
@@ -808,7 +819,8 @@ function renderStats(){
       <div class="stat" onclick="openStatList('both')">💕 같이 간 나라 <b>${bothCountries.size}</b></div>
       <div class="stat" onclick="openStatList('countries')">🌍 방문 나라 <b>${countries.size}</b></div>
       <div class="stat" onclick="openStatList('cities')">📍 도시 <b>${cities.size}</b></div>
-      <div class="stat" onclick="openStatList('wish')">⭐ 세계 위시 <b>${wishN}</b></div>`;
+      <div class="stat" onclick="openStatList('wish')">⭐ 위시 <b>${wishN}</b></div>
+      <div class="stat rank" onclick="openRanking()">🏆 랭킹</div>`;
   } else {
     const k = state.records.filter(r=>r.scope==='korea');
     const regions = new Set(k.map(r=>r.city));
@@ -817,9 +829,53 @@ function renderStats(){
     chips = `
       <div class="stat" onclick="openStatList('korea-both')">💕 같이 간 곳 <b>${bothRegions.size}</b></div>
       <div class="stat" onclick="openStatList('korea')">🇰🇷 다녀온 곳 <b>${regions.size}</b></div>
-      <div class="stat" onclick="openStatList('korea-wish')">⭐ 국내 위시 <b>${wishN}</b></div>`;
+      <div class="stat" onclick="openStatList('korea-wish')">⭐ 위시 <b>${wishN}</b></div>
+      <div class="stat rank" onclick="openRanking()">🏆 랭킹</div>`;
   }
   document.getElementById('stats').innerHTML = chips;
+}
+/* 랭킹: 가장 많이 간 나라/도시 (탭별) */
+function openRanking(){
+  const scope = curTab;
+  const recs = state.records.filter(r=>r.scope===scope);
+  const title = scope==='world' ? '🏆 세계 여행 랭킹' : '🏆 국내 여행 랭킹';
+
+  // 나라(세계) 또는 지역(한국)별 방문 횟수
+  const unitKey = scope==='world' ? 'country' : 'city';
+  const unitCount = {};
+  recs.forEach(r=>{ const k=r[unitKey]; unitCount[k]=(unitCount[k]||0)+1; });
+  const topUnits = Object.entries(unitCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  // 도시별 방문 횟수 (세계만 — 한국은 위 단위가 이미 도시급)
+  const cityCount = {};
+  recs.forEach(r=>{ const k=r.city; cityCount[k]=(cityCount[k]||0)+1; });
+  const topCities = Object.entries(cityCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  const medal = i => ['🥇','🥈','🥉','4️⃣','5️⃣'][i]||(i+1);
+  let html = `<h2>${title}</h2>`;
+
+  if(!recs.length){
+    html += `<p class="hint" style="margin-top:10px">아직 기록이 없어요. 여행을 기록하면 랭킹이 만들어져요!</p>`;
+  } else {
+    html += `<div class="rank-sec"><div class="rank-h">${scope==='world'?'✈️ 많이 간 나라':'📍 많이 간 지역'}</div>`;
+    topUnits.forEach(([name,cnt],i)=>{
+      const disp = scope==='world' ? koName(name) : name;
+      html += `<div class="rank-row" onclick="closeSheets();highlight('${scope}','${String(name).replace(/'/g,"\\'")}');openDetail('${scope}','${String(name).replace(/'/g,"\\'")}')">
+        <span class="rk">${medal(i)}</span><span class="rn">${disp}</span><span class="rc">${cnt}회</span></div>`;
+    });
+    html += `</div>`;
+
+    if(scope==='world'){
+      html += `<div class="rank-sec"><div class="rank-h">🏙️ 많이 간 도시</div>`;
+      topCities.forEach(([name,cnt],i)=>{
+        html += `<div class="rank-row"><span class="rk">${medal(i)}</span><span class="rn">${esc(name)}</span><span class="rc">${cnt}회</span></div>`;
+      });
+      html += `</div>`;
+    }
+  }
+  document.getElementById('detailBody').innerHTML = html;
+  document.getElementById('sheetbg').classList.add('show');
+  document.getElementById('detailSheet').classList.add('show');
 }
 /* 통계 칩 클릭 → 해당 목록 시트 */
 function openStatList(kind){
@@ -849,11 +905,12 @@ function openStatList(kind){
         tagColor: both?'var(--both)':(r.who==='me'?'var(--me)':'var(--pt)'), openName:r.country});
     });
   } else if(kind==='wish'){
-    title='⭐ 세계 위시리스트';
+    title='⭐ 위시리스트';
     state.wishes.filter(x=>x.scope==='world').forEach(wi=>{
       items.push({scope:'world', name:wi.name,
-        sub: wi.planDate?('✈️ '+wi.planDate+' 예정'):'', tagText: wi.planDate?ddayText(wi.planDate):'위시',
-        tagColor: wi.planDate?'var(--both)':'var(--wish-line)', openName:wi.name});
+        sub: (wishWhoLabel(wi)?'⭐ '+wishWhoLabel(wi)+' ':'')+(wi.planDate?('· ✈️ '+wi.planDate+' 예정'):''),
+        tagText: wi.planDate?ddayText(wi.planDate):(wishWhoLabel(wi)||'위시'),
+        tagColor: wi.planDate?'var(--both)':wishWhoColor(wi), openName:wi.name});
     });
   } else if(kind==='korea'){
     title='🇰🇷 다녀온 국내';
@@ -869,11 +926,12 @@ function openStatList(kind){
       items.push({scope:'korea', name:c, sub:'', tagText:'같이', tagColor:'var(--both)'});
     });
   } else if(kind==='korea-wish'){
-    title='⭐ 국내 위시리스트';
+    title='⭐ 위시리스트';
     state.wishes.filter(x=>x.scope==='korea').forEach(wi=>{
       items.push({scope:'korea', name:wi.name,
-        sub: wi.planDate?('✈️ '+wi.planDate+' 예정'):'', tagText: wi.planDate?ddayText(wi.planDate):'위시',
-        tagColor: wi.planDate?'var(--both)':'var(--wish-line)', openName:wi.name});
+        sub: (wishWhoLabel(wi)?'⭐ '+wishWhoLabel(wi)+' ':'')+(wi.planDate?('· ✈️ '+wi.planDate+' 예정'):''),
+        tagText: wi.planDate?ddayText(wi.planDate):(wishWhoLabel(wi)||'위시'),
+        tagColor: wi.planDate?'var(--both)':wishWhoColor(wi), openName:wi.name});
     });
   }
   let html = `<h2>${title} <span style="color:var(--sub);font-size:15px">${items.length}</span></h2>`;
@@ -900,7 +958,7 @@ function openDetail(scope, name){
   const wishObj = getWish(scope, name);
   const badge = st==='both' ? '<span class="badge both">같이 다녀옴 💕</span>'
               : st==='solo' ? `<span class="badge me">${unitNames(scope,name)} 다녀옴</span>`
-              : wishObj ? '<span class="badge wish">가고 싶은 곳 ⭐</span>'
+              : wishObj ? `<span class="badge wish">⭐ ${wishWhoLabel(wishObj)?wishWhoLabel(wishObj)+' ':''}위시</span>`
               : '<span class="badge none">아직 안 가봄</span>';
   const crown = tripCount(scope,name)>=2 ? ' 👑' : '';
   const kn = scope==='world' ? koName(name) : name;
@@ -963,8 +1021,25 @@ function getWish(scope, name){ return state.wishes.find(w=>w.scope===scope && w.
 function toggleWish(){
   const {scope, name} = curDetail;
   const i = state.wishes.findIndex(w=>w.scope===scope && w.name===name);
-  if(i>=0){ deletedIds.push(state.wishes[i].id); state.wishes.splice(i,1); toast('위시리스트에서 뺐어요'); }
-  else { state.wishes.push({id: uid(), scope, name, updatedAt: Date.now()}); toast('위시리스트에 담았어요 ⭐'); }
+  if(i>=0){ deletedIds.push(state.wishes[i].id); state.wishes.splice(i,1); toast('위시리스트에서 뺐어요'); persist(); renderAll(); renderDday(); openDetail(scope, name); }
+  else { openWishWho(); }  // 누구 위시인지 먼저 선택
+}
+function openWishWho(){
+  const {scope, name} = curDetail;
+  const kn = scope==='world' ? koName(name) : name;
+  let html = `<h2>⭐ ${kn} 위시 담기</h2><p class="hint" style="margin:8px 0 4px">누가 가고 싶어 하나요?</p>`;
+  html += `<div class="wishwho">
+    <button onclick="addWish('me')" style="background:var(--me)">🧑 ${CONFIG.NAME_ME}</button>
+    <button onclick="addWish('partner')" style="background:var(--pt)">👩 ${CONFIG.NAME_PARTNER}</button>
+    <button onclick="addWish('both')" style="background:var(--both)">💕 같이</button>
+  </div>`;
+  html += `<div class="btnrow"><button class="btn ghost" onclick="openDetail('${scope}','${String(name).replace(/'/g,"\\'")}')">← 취소</button></div>`;
+  document.getElementById('detailBody').innerHTML = html;
+}
+function addWish(who){
+  const {scope, name} = curDetail;
+  state.wishes.push({id: uid(), scope, name, who, updatedAt: Date.now()});
+  toast('위시리스트에 담았어요 ⭐');
   persist(); renderAll(); renderDday(); openDetail(scope, name);
 }
 function editPlan(){
