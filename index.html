@@ -77,6 +77,8 @@ header h1{font-size:22px}
 /* ── 지도 ── */
 #mapwrap{flex:1;position:relative;z-index:0;border-radius:20px 20px 0 0;overflow:hidden;margin:6px 8px 0;box-shadow:0 -2px 12px rgba(92,73,72,.05)}
 #map{position:absolute;inset:0;background:#EAF4FA}
+#emptyHint{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:450;background:rgba(255,255,255,.94);border-radius:20px;padding:24px 28px;text-align:center;font-family:'Jua';font-size:20px;color:var(--text);line-height:1.6;box-shadow:0 4px 20px rgba(92,73,72,.2);pointer-events:none}
+#emptyHint small{font-family:'Gowun Dodum';font-size:13px;color:var(--sub);line-height:1.5}
 #legend{position:absolute;left:10px;bottom:12px;z-index:500;background:rgba(255,255,255,.92);border-radius:12px;padding:8px 11px;box-shadow:0 2px 8px rgba(92,73,72,.15);font-size:12px;display:flex;flex-direction:column;gap:5px}
 #legend .lg{display:flex;align-items:center;gap:7px;color:var(--text)}
 #legend .sw{width:13px;height:13px;border-radius:4px;flex-shrink:0}
@@ -86,9 +88,8 @@ header h1{font-size:22px}
 .name-label:before{display:none}
 .name-label.clickable{cursor:pointer}
 /* 왕관(2회 이상 방문) 나라 = 20% 크게 + 금테 + 반짝 애니메이션 */
-.name-label.crown{font-size:15px;padding:3px 11px;background:linear-gradient(135deg,#FFF7E0,#FFEFC2);border:1.5px solid var(--wish-line);box-shadow:0 2px 10px rgba(203,184,92,.45);animation:crownPulse 2.2s ease-in-out infinite}
-.name-label.crown .cr{filter:drop-shadow(0 1px 1px rgba(180,140,20,.5))}
-@keyframes crownPulse{0%,100%{transform:scale(1);box-shadow:0 2px 10px rgba(203,184,92,.4)}50%{transform:scale(1.06);box-shadow:0 3px 16px rgba(203,184,92,.7)}}
+.name-label.crown{font-size:14.5px;padding:3px 11px;background:linear-gradient(135deg,#FFF7E0,#FFEFC2);border:1.5px solid var(--wish-line);box-shadow:0 2px 8px rgba(203,184,92,.35)}
+.name-label.crown .cr{filter:drop-shadow(0 1px 1px rgba(180,140,20,.4))}
 /* 도시 이름 = 하위 라벨 (작고 가벼움, 둥근 알약, Gowun) */
 .city-pin{width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3)}
 .city-marker{display:flex;flex-direction:column;align-items:center}
@@ -194,10 +195,10 @@ nav button.on{color:var(--red)}
   </header>
   <div id="mapwrap"><div id="map"></div>
     <div id="legend">
-      <div class="lg"><span class="sw" style="background:#B06B6B"></span>윤호</div>
-      <div class="lg"><span class="sw" style="background:#6B84B0"></span>가진</div>
-      <div class="lg"><span class="sw" style="background:#5FAE7E"></span>같이</div>
-      <div class="lg"><span class="sw" style="background:#EBD98A;border:1px dashed #CBB85C"></span>위시</div>
+      <div class="lg"><span class="sw" style="background:#B06B6B"></span>🧑 윤호</div>
+      <div class="lg"><span class="sw" style="background:#6B84B0"></span>👩 가진</div>
+      <div class="lg"><span class="sw" style="background:#5FAE7E"></span>💕 같이</div>
+      <div class="lg"><span class="sw" style="background:#EBD98A;border:1px dashed #CBB85C"></span>⭐ 위시</div>
     </div>
   </div>
   <nav>
@@ -409,17 +410,34 @@ async function loadData(){
   setSync(CONFIG.API_URL ? 'err' : 'local');
 }
 let saveTimer = null;
+let deletedIds = JSON.parse(localStorage.getItem('tm_deleted')||'[]');
 function persist(){
   localStorage.setItem('tm_state', JSON.stringify(state));
+  localStorage.setItem('tm_deleted', JSON.stringify(deletedIds));
   if(!CONFIG.API_URL) return;
   setSync('sync');
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async ()=>{
     try{
-      const r = await fetch(CONFIG.API_URL, {method:'POST', body: JSON.stringify({action:'save', pin: CONFIG.PIN, data: state})});
+      const payload = {action:'save', pin: CONFIG.PIN,
+        data: {records: state.records, wishes: state.wishes, deletedIds}};
+      const r = await fetch(CONFIG.API_URL, {method:'POST', body: JSON.stringify(payload)});
       const j = await r.json();
+      if(j.ok && j.data){
+        // 서버 병합본으로 갱신 (상대방이 동시에 넣은 것도 여기서 합쳐짐)
+        state = j.data;
+        deletedIds = [];  // 삭제 반영 완료
+        localStorage.setItem('tm_state', JSON.stringify(state));
+        localStorage.setItem('tm_deleted', '[]');
+        renderAll();
+      }
       setSync(j.ok ? 'ok' : 'err');
-    }catch(e){ setSync('err'); }
+    }catch(e){
+      setSync('err');
+      toast('⚠️ 저장 실패 — 인터넷 확인 후 다시 시도해요');
+      // 5초 뒤 자동 재시도 1회
+      setTimeout(()=>{ if(navigator.onLine) persist(); }, 5000);
+    }
   }, 600);
 }
 function setSync(s){
@@ -511,8 +529,20 @@ function countryLabelPos(f){
   });
   if(!biggest) return null;
   try{
-    const pt = polylabel(biggest, 0.5);   // [lng, lat]
-    if(pt && isFinite(pt[0]) && isFinite(pt[1])) return L.latLng(pt[1], pt[0]);
+    if(typeof polylabel === 'function'){
+      const pt = polylabel(biggest, 0.5);   // [lng, lat]
+      if(pt && isFinite(pt[0]) && isFinite(pt[1])) return L.latLng(pt[1], pt[0]);
+    }
+  }catch(e){}
+  // polylabel 없으면 본토 무게중심으로 폴백
+  try{
+    const ring = biggest[0]; let a=0,cx=0,cy=0;
+    for(let i=0,n=ring.length,j=n-1;i<n;j=i++){
+      const f2=ring[j][0]*ring[i][1]-ring[i][0]*ring[j][1];
+      a+=f2; cx+=(ring[j][0]+ring[i][0])*f2; cy+=(ring[j][1]+ring[i][1])*f2;
+    }
+    a/=2; if(a){ const la=cy/(6*a), ln=cx/(6*a);
+      if(isFinite(la)&&isFinite(ln)) return L.latLng(la,ln); }
   }catch(e){}
   return L.geoJSON(f).getBounds().getCenter();
 }
@@ -597,7 +627,17 @@ function isWish(scope, name){
 }
 
 /* ── 렌더 ── */
-function renderAll(){ renderStats(); renderMap(); renderDday(); }
+function renderAll(){ renderStats(); renderMap(); renderDday(); renderEmptyHint(); }
+function renderEmptyHint(){
+  let hint = document.getElementById('emptyHint');
+  const isEmpty = state.records.length===0 && state.wishes.length===0;
+  if(isEmpty && !hint){
+    hint = document.createElement('div');
+    hint.id = 'emptyHint';
+    hint.innerHTML = '🗺️✨<br>첫 여행을 기록해보세요!<br><small>지도에서 다녀온 나라를 눌러<br>도시와 추억을 남겨보세요</small>';
+    document.getElementById('mapwrap').appendChild(hint);
+  } else if(!isEmpty && hint){ hint.remove(); }
+}
 function upcomingPlans(){
   const today = new Date(); today.setHours(0,0,0,0);
   return state.wishes.filter(w=>w.planDate && w.scope===curTab)   // 현재 탭(세계/한국)만
@@ -923,8 +963,8 @@ function getWish(scope, name){ return state.wishes.find(w=>w.scope===scope && w.
 function toggleWish(){
   const {scope, name} = curDetail;
   const i = state.wishes.findIndex(w=>w.scope===scope && w.name===name);
-  if(i>=0){ state.wishes.splice(i,1); toast('위시리스트에서 뺐어요'); }
-  else { state.wishes.push({id: uid(), scope, name}); toast('위시리스트에 담았어요 ⭐'); }
+  if(i>=0){ deletedIds.push(state.wishes[i].id); state.wishes.splice(i,1); toast('위시리스트에서 뺐어요'); }
+  else { state.wishes.push({id: uid(), scope, name, updatedAt: Date.now()}); toast('위시리스트에 담았어요 ⭐'); }
   persist(); renderAll(); renderDday(); openDetail(scope, name);
 }
 function editPlan(){
@@ -936,7 +976,7 @@ function editPlan(){
   if(v === null) return;
   const t = v.trim();
   if(t && !/^\d{4}-\d{2}-\d{2}$/.test(t)){ toast('YYYY-MM-DD 형식으로 입력해주세요'); return; }
-  w.planDate = t || null;
+  w.planDate = t || null; w.updatedAt = Date.now();
   persist(); renderAll(); renderDday();
   toast(t ? '여행 일정을 잡았어요! ✈️' : '일정을 비웠어요');
   openDetail(scope, name);
@@ -1036,6 +1076,7 @@ async function saveRecord(){
     r.date = document.getElementById('f-date').value;
     r.memo = document.getElementById('f-memo').value.trim();
     r.link = document.getElementById('f-link').value.trim();
+    r.updatedAt = Date.now();
   } else {
     let city, lat=null, lng=null;
     if(formCtx.scope==='world'){
@@ -1052,7 +1093,8 @@ async function saveRecord(){
       city, lat, lng, who: pickedWho, rating: pickedStar,
       date: document.getElementById('f-date').value,
       memo: document.getElementById('f-memo').value.trim(),
-      link: document.getElementById('f-link').value.trim()
+      link: document.getElementById('f-link').value.trim(),
+      updatedAt: Date.now()
     });
   }
   persist(); renderAll(); closeSheets();
@@ -1061,6 +1103,7 @@ async function saveRecord(){
 }
 function deleteRecord(id){
   if(!confirm('이 기록을 지울까요?')) return;
+  deletedIds.push(id);
   state.records = state.records.filter(r=>r.id!==id);
   persist(); renderAll();
   openDetail(curDetail.scope, curDetail.name);
