@@ -49,7 +49,10 @@ header h1{font-size:22px}
 .stat{flex-shrink:0;background:var(--card);cursor:pointer;border-radius:14px;padding:7px 12px;font-size:12.5px;box-shadow:0 1px 5px rgba(92,73,72,.06);white-space:nowrap}
 .stat b{font-family:'Jua';font-size:14px}
 #syncdot{font-size:11px;color:var(--sub)}
-#searchbar{position:relative;margin-top:8px}
+#searchbar{position:relative;margin-top:8px;display:none}
+#searchbar.show{display:block}
+#searchBtn{background:var(--card);border-radius:10px;width:34px;height:32px;font-size:15px;box-shadow:0 1px 4px rgba(92,73,72,.1)}
+#searchBtn.on{background:var(--me);}
 #searchInput{font-size:14px;padding:9px 12px;border-radius:12px;background:#fff}
 #searchList{position:absolute;left:0;right:0;top:44px;z-index:600;background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(92,73,72,.18);max-height:260px;overflow-y:auto;display:none}
 #searchList.show{display:block}
@@ -175,6 +178,7 @@ nav button.on{color:var(--red)}
       <h1 id="title">🌍 우리 여행 지도</h1>
       <div class="hdr-right">
         <button id="ddayBadge" onclick="openPlanList()" style="display:none"></button>
+        <button id="searchBtn" onclick="toggleSearch()">🔍</button>
         <span id="syncdot">●</span>
       </div>
     </div>
@@ -288,6 +292,14 @@ const COUNTRY = {
 "Egypt":["이집트",30.04,31.24],"Libya":["리비아",32.89,13.19],"Tunisia":["튀니지",36.81,10.18],"Algeria":["알제리",36.75,3.06],"Morocco":["모로코",34.02,-6.84],"Western Sahara":["서사하라",27.13,-13.20],"Sudan":["수단",15.50,32.56],"South Sudan":["남수단",4.86,31.57],"Ethiopia":["에티오피아",9.03,38.74],"Somalia":["소말리아",2.05,45.32],"Kenya":["케냐",-1.29,36.82],"United Republic of Tanzania":["탄자니아",-6.16,35.75],"Uganda":["우간다",0.35,32.58],"Rwanda":["르완다",-1.94,30.06],"Burundi":["부룬디",-3.38,29.36],"Democratic Republic of the Congo":["콩고민주공화국",-4.32,15.31],"Republic of the Congo":["콩고",-4.20,15.27],"Gabon":["가봉",0.39,9.45],"Cameroon":["카메룬",3.87,11.52],"Nigeria":["나이지리아",9.06,7.49],"Niger":["니제르",13.51,2.11],"Chad":["차드",12.13,15.06],"Mali":["말리",12.64,-8.00],"Mauritania":["모리타니",18.07,-15.96],"Senegal":["세네갈",14.69,-17.44],"Guinea":["기니",9.64,-13.58],"Guinea Bissau":["기니비사우",11.86,-15.60],"Sierra Leone":["시에라리온",8.47,-13.23],"Liberia":["라이베리아",6.29,-10.76],"Ivory Coast":["코트디부아르",6.82,-5.28],"Ghana":["가나",5.60,-0.19],"Togo":["토고",6.13,1.22],"Benin":["베냉",6.50,2.60],"Burkina Faso":["부르키나파소",12.37,-1.52],"Gambia":["감비아",13.45,-16.58],"Angola":["앙골라",-8.84,13.23],"Zambia":["잠비아",-15.39,28.32],"Zimbabwe":["짐바브웨",-17.83,31.05],"Mozambique":["모잠비크",-25.97,32.58],"Malawi":["말라위",-13.96,33.77],"Madagascar":["마다가스카르",-18.88,47.51],"Namibia":["나미비아",-22.56,17.08],"Botswana":["보츠와나",-24.63,25.92],"South Africa":["남아프리카공화국",-25.75,28.19],"Lesotho":["레소토",-29.31,27.48],"Swaziland":["에스와티니",-26.31,31.13],"Eritrea":["에리트레아",15.34,38.93],"Djibouti":["지부티",11.59,43.15],
 "Australia":["호주",-35.28,149.13],"New Zealand":["뉴질랜드",-41.29,174.78],"Papua New Guinea":["파푸아뉴기니",-9.44,147.18],"Fiji":["피지",-18.14,178.44],"Solomon Islands":["솔로몬제도",-9.43,159.96],"Vanuatu":["바누아투",-17.73,168.33],"New Caledonia":["뉴칼레도니아",-22.26,166.46]};
 const koName = n => (COUNTRY[n]||[n])[0];
+function toggleSearch(){
+  const bar = document.getElementById('searchbar');
+  const btn = document.getElementById('searchBtn');
+  const open = bar.classList.toggle('show');
+  btn.classList.toggle('on', open);
+  if(open){ setTimeout(()=>document.getElementById('searchInput').focus(), 50); }
+  else { document.getElementById('searchInput').value=''; document.getElementById('searchList').classList.remove('show'); }
+}
 /* 검색: 한글/영문 입력 → 나라 목록 */
 function onSearch(q){
   const box = document.getElementById('searchList');
@@ -335,6 +347,8 @@ function onSearch(q){
 }
 function pickSearch(scope, name){
   document.getElementById('searchList').classList.remove('show');
+  document.getElementById('searchbar').classList.remove('show');
+  document.getElementById('searchBtn').classList.remove('on');
   document.getElementById('searchInput').value='';
   const c = scope==='world' ? WORLD_CENTER[name] : KR_CENTER[name];
   if(c){ map.setView(c, Math.max(map.getZoom(), scope==='world'?4:9)); }
@@ -442,8 +456,13 @@ async function loadWorld(){
       fixAntimeridian(f);                          // 날짜변경선 가로줄 보정
       try{
         const c = COUNTRY[f.properties.name];
-        WORLD_CENTER[f.properties.name] = (c && c.length>2) ? L.latLng(c[1],c[2]) : countryLabelPos(f);
-      }catch(e){}
+        let pos = (c && c.length>2) ? L.latLng(c[1],c[2]) : countryLabelPos(f);
+        // 좌표 유효성 검사: 위도 -60~85, 경도 -180~180 벗어나면 본토 무게중심으로 대체
+        if(!pos || pos.lat<-60 || pos.lat>85 || pos.lng<-180 || pos.lng>180){
+          pos = countryLabelPos(f);
+        }
+        WORLD_CENTER[f.properties.name] = pos;
+      }catch(e){ WORLD_CENTER[f.properties.name] = countryLabelPos(f); }
     });
   }
 }
@@ -468,7 +487,7 @@ const LABEL_FIX = {
   "Norway":[61.5,9], "Vietnam":[20.8,105.3], "Croatia":[45.7,16.0], "Chile":[-33.8,-70.8],
   "Indonesia":[-0.5,113.5], "Japan":[36.5,138.5], "France":[46.8,2.4], "United Kingdom":[52.8,-1.7],
   "New Zealand":[-43.4,171.8], "Philippines":[15.8,121.2], "Italy":[43.5,11.9], "Greece":[39.4,22.1],
-  "Portugal":[39.8,-8.1], "Malaysia":[4.2,102.2], "South Korea":[36.5,127.9]
+  "Portugal":[39.8,-8.1], "South Korea":[36.5,127.9]
 };
 function countryLabelPos(f){
   const fix = LABEL_FIX[f.properties.name];
@@ -487,8 +506,11 @@ function countryLabelPos(f){
     area /= 2;
     const abs = Math.abs(area);
     if(abs > bestArea && abs > 0){
-      bestArea = abs;
-      best = L.latLng(cy/(6*area), cx/(6*area));
+      const la = cy/(6*area), ln = cx/(6*area);
+      if(la>=-60 && la<=85 && ln>=-180 && ln<=180){   // 정상 범위만 채택
+        bestArea = abs;
+        best = L.latLng(la, ln);
+      }
     }
   });
   return best || L.geoJSON(f).getBounds().getCenter();
@@ -537,9 +559,10 @@ async function switchTab(t){
   document.getElementById('tab-world').classList.toggle('on', t==='world');
   document.getElementById('tab-korea').classList.toggle('on', t==='korea');
   document.getElementById('title').textContent = t==='world' ? '🌍 우리 여행 지도' : '🇰🇷 우리나라 정복 지도';
-  document.getElementById('searchbar').style.display = 'block';
   document.getElementById('searchInput').placeholder = t==='world' ? '🔍 나라 검색 (예: 터키, 일본)' : '🔍 도시 검색 (예: 속초, 경주)';
   document.getElementById('searchInput').value = '';
+  document.getElementById('searchbar').classList.remove('show');
+  document.getElementById('searchBtn').classList.remove('on');
   document.getElementById('searchList').classList.remove('show');
   if(t==='korea') await loadKorea();
   renderAll();
