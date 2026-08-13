@@ -70,6 +70,9 @@ header h1{font-size:22px}
 .plan-card .pc2{font-size:12.5px;color:var(--sub);margin-top:2px}
 .plan-card .actions{display:flex;gap:12px;margin-top:8px}
 .plan-card .actions button{font-size:12px;color:#5C8A72}
+.summary-line{margin-top:10px;font-size:14px;color:var(--text)}
+.summary-line b{font-family:'Jua';color:var(--me)}
+.hint2{font-size:11.5px;color:var(--sub)}
 
 /* ── 지도 ── */
 #mapwrap{flex:1;position:relative;z-index:0;border-radius:20px 20px 0 0;overflow:hidden;margin:6px 8px 0;box-shadow:0 -2px 12px rgba(92,73,72,.05)}
@@ -260,7 +263,7 @@ nav button.on{color:var(--red)}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/polylabel@1.1.0/polylabel.min.js"></script>
+<script src="https://unpkg.com/@mapbox/polylabel@2.0.1/polylabel.js"></script>
 <script>
 /* ═══════════ 설정 (여기만 수정하면 됨) ═══════════ */
 const CONFIG = {
@@ -722,7 +725,7 @@ function renderWorldLabels(){
     const wish = isWish('world', name);
     const kn = koName(name);
     const crowned = tripCount('world', name) >= 2;
-    const show = st || wish || crowned || (z>=5) || (z>=2.5 && MAJOR.has(kn)) ;
+    const show = st || wish || crowned;   // 방문/위시/왕관 나라만 이름 표시
     if(!show) return;
     let txt = '';
     if(crowned) txt += '<span class="cr">👑</span> ';
@@ -852,7 +855,7 @@ function openStatList(kind){
 let curDetail = null;
 function openDetail(scope, name){
   curDetail = {scope, name};
-  const recs = recsFor(scope, name).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const recs = recsFor(scope, name);
   const st = unitStatus(scope, name);
   const wishObj = getWish(scope, name);
   const badge = st==='both' ? '<span class="badge both">같이 다녀옴 💕</span>'
@@ -860,7 +863,8 @@ function openDetail(scope, name){
               : wishObj ? '<span class="badge wish">가고 싶은 곳 ⭐</span>'
               : '<span class="badge none">아직 안 가봄</span>';
   const crown = tripCount(scope,name)>=2 ? ' 👑' : '';
-  let html = `<h2>${name}${crown} ${badge}</h2>`;
+  const kn = scope==='world' ? koName(name) : name;
+  let html = `<h2>${kn}${crown} ${badge}</h2>`;
 
   // 여행 계획(D-day) 표시
   if(wishObj && wishObj.planDate){
@@ -872,7 +876,35 @@ function openDetail(scope, name){
     </div>`;
   }
 
-  if(!recs.length) html += `<p class="hint" style="margin-top:8px">아직 기록이 없어요. ${scope==='world'?'다녀온 도시를 추가해보세요!':'다녀왔다면 기록을 남겨보세요!'}</p>`;
+  // 요약: 다녀온 도시 개수 (리스트는 접어두고 버튼으로)
+  if(recs.length){
+    const cities = [...new Set(recs.map(r=>r.city))];
+    html += `<div class="summary-line">📍 다녀온 곳 <b>${cities.length}</b>곳 · 기록 <b>${recs.length}</b>개`;
+    if(scope==='world') html += ` <span class="hint2">(지도에서 도시 확인)</span>`;
+    html += `</div>`;
+    html += `<div class="btnrow"><button class="btn blue" onclick="openTripList()">🗺️ 여행 리스트 보기</button></div>`;
+  } else {
+    html += `<p class="hint" style="margin-top:8px">아직 기록이 없어요. ${scope==='world'?'다녀온 도시를 추가해보세요!':'다녀왔다면 기록을 남겨보세요!'}</p>`;
+  }
+
+  // 버튼: 위시 담기 / 기록추가
+  html += `<div class="btnrow">
+    <button class="btn gold" onclick="toggleWish()">${wishObj ? '⭐ 위시 해제' : '⭐ 가고 싶어요'}</button>
+    <button class="btn primary" onclick="openForm()">✏️ 기록 추가</button>
+  </div>`;
+  if(wishObj && !wishObj.planDate){
+    html += `<div class="btnrow"><button class="btn ghost" onclick="editPlan()">✈️ 여행 일정 잡기 (D-day 설정)</button></div>`;
+  }
+  document.getElementById('detailBody').innerHTML = html;
+  document.getElementById('sheetbg').classList.add('show');
+  document.getElementById('detailSheet').classList.add('show');
+}
+/* 여행 리스트 보기: 그 나라/지역의 기록 상세를 별도 화면으로 */
+function openTripList(){
+  const {scope, name} = curDetail;
+  const recs = recsFor(scope, name).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const kn = scope==='world' ? koName(name) : name;
+  let html = `<h2>🗺️ ${kn} 여행 리스트 <span style="color:var(--sub);font-size:15px">${recs.length}</span></h2>`;
   recs.forEach(r=>{
     const whoTxt = r.who==='both' ? '같이 💕' : (r.who==='me' ? CONFIG.NAME_ME : CONFIG.NAME_PARTNER);
     const whoBg = r.who==='both' ? 'var(--both)' : (r.who==='me' ? 'var(--me)' : 'var(--pt)');
@@ -884,18 +916,8 @@ function openDetail(scope, name){
       <div class="actions"><button onclick="editRecord('${r.id}')">수정</button><button onclick="deleteRecord('${r.id}')">삭제</button></div>
     </div>`;
   });
-
-  // 버튼: 위시 담기 / 여행계획 / 기록추가
-  html += `<div class="btnrow">
-    <button class="btn gold" onclick="toggleWish()">${wishObj ? '⭐ 위시 해제' : '⭐ 가고 싶어요'}</button>
-    <button class="btn primary" onclick="openForm()">✏️ 기록 추가</button>
-  </div>`;
-  if(wishObj && !wishObj.planDate){
-    html += `<div class="btnrow"><button class="btn blue" onclick="editPlan()">✈️ 여행 일정 잡기 (D-day 설정)</button></div>`;
-  }
+  html += `<div class="btnrow"><button class="btn ghost" onclick="openDetail('${scope}','${String(name).replace(/'/g,"\\'")}')">← 뒤로</button><button class="btn primary" onclick="openForm()">✏️ 기록 추가</button></div>`;
   document.getElementById('detailBody').innerHTML = html;
-  document.getElementById('sheetbg').classList.add('show');
-  document.getElementById('detailSheet').classList.add('show');
 }
 function getWish(scope, name){ return state.wishes.find(w=>w.scope===scope && w.name===name); }
 function toggleWish(){
