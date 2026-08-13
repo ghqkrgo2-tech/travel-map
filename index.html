@@ -46,9 +46,18 @@ header .top{display:flex;align-items:center;justify-content:space-between}
 header h1{font-size:22px}
 #stats{display:flex;gap:8px;margin-top:8px;overflow-x:auto;padding-bottom:2px}
 #stats::-webkit-scrollbar{display:none}
-.stat{flex-shrink:0;background:var(--card);border-radius:14px;padding:7px 12px;font-size:12.5px;box-shadow:0 1px 5px rgba(92,73,72,.06);white-space:nowrap}
+.stat{flex-shrink:0;background:var(--card);cursor:pointer;border-radius:14px;padding:7px 12px;font-size:12.5px;box-shadow:0 1px 5px rgba(92,73,72,.06);white-space:nowrap}
 .stat b{font-family:'Jua';font-size:14px}
 #syncdot{font-size:11px;color:var(--sub)}
+#searchbar{position:relative;margin-top:8px}
+#searchInput{font-size:14px;padding:9px 12px;border-radius:12px;background:#fff}
+#searchList{position:absolute;left:0;right:0;top:44px;z-index:600;background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(92,73,72,.18);max-height:260px;overflow-y:auto;display:none}
+#searchList.show{display:block}
+#searchList .si{padding:11px 14px;font-size:14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;cursor:pointer}
+#searchList .si:last-child{border-bottom:none}
+#searchList .si:active{background:var(--bg)}
+#searchList .si .tag{margin-left:auto;font-size:11px;color:#fff;border-radius:8px;padding:2px 8px}
+#searchList .none{padding:14px;text-align:center;color:var(--sub);font-size:13px}
 .hdr-right{display:flex;align-items:center;gap:8px}
 #ddayBadge{background:var(--both);color:#fff;border-radius:12px;padding:6px 12px;font-family:'Jua';font-size:14px;box-shadow:0 2px 6px rgba(95,174,126,.35);line-height:1.15;text-align:center}
 #ddayBadge small{display:block;font-size:9.5px;opacity:.9;font-family:'Gowun Dodum'}
@@ -66,14 +75,19 @@ header h1{font-size:22px}
 #legend .lg{display:flex;align-items:center;gap:7px;color:var(--text)}
 #legend .sw{width:13px;height:13px;border-radius:4px;flex-shrink:0}
 .leaflet-container{font-family:'Gowun Dodum'}
-.name-label{background:rgba(255,255,255,.88);border:none;border-radius:8px;padding:1px 6px;font-size:10px;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12);white-space:nowrap;font-family:'Gowun Dodum'}
+/* 나라 이름 = 대표 라벨 (진하고 큼, Jua 폰트) */
+.name-label{background:rgba(255,255,255,.92);border:none;border-radius:9px;padding:2px 9px;font-size:12.5px;color:var(--text);box-shadow:0 2px 6px rgba(92,73,72,.18);white-space:nowrap;font-family:'Jua';font-weight:400;text-align:center;line-height:1.25}
 .name-label:before{display:none}
 .name-label.clickable{cursor:pointer}
-.crown-icon{font-size:16px;text-shadow:0 1px 2px rgba(0,0,0,.2)}
+/* 왕관(2회 이상 방문) 나라 = 20% 크게 + 금테 + 반짝 애니메이션 */
+.name-label.crown{font-size:15px;padding:3px 11px;background:linear-gradient(135deg,#FFF7E0,#FFEFC2);border:1.5px solid var(--wish-line);box-shadow:0 2px 10px rgba(203,184,92,.45);animation:crownPulse 2.2s ease-in-out infinite}
+.name-label.crown .cr{filter:drop-shadow(0 1px 1px rgba(180,140,20,.5))}
+@keyframes crownPulse{0%,100%{transform:scale(1);box-shadow:0 2px 10px rgba(203,184,92,.4)}50%{transform:scale(1.06);box-shadow:0 3px 16px rgba(203,184,92,.7)}}
+/* 도시 이름 = 하위 라벨 (작고 가벼움, 둥근 알약, Gowun) */
 .city-pin{width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3)}
 .city-marker{display:flex;flex-direction:column;align-items:center}
-.city-dot{width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
-.city-name{margin-top:2px;background:rgba(255,255,255,.9);border-radius:6px;padding:0 5px;font-size:10px;color:var(--text);white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.15);font-family:'Gowun Dodum'}
+.city-dot{width:9px;height:9px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.city-name{margin-top:2px;background:rgba(255,255,255,.82);border-radius:10px;padding:0 6px;font-size:9.5px;color:var(--sub);white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.1);font-family:'Gowun Dodum';border:.5px solid var(--line)}
 
 /* ── 하단 탭 ── */
 nav{display:flex;background:var(--card);border-top:1.5px solid var(--line);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
@@ -165,6 +179,11 @@ nav button.on{color:var(--red)}
       </div>
     </div>
     <div id="stats"></div>
+    <div id="searchbar">
+      <input id="searchInput" placeholder="🔍 나라 검색 (예: 터키, 일본)" autocomplete="off"
+        oninput="onSearch(this.value)" onfocus="onSearch(this.value)">
+      <div id="searchList"></div>
+    </div>
   </header>
   <div id="mapwrap"><div id="map"></div>
     <div id="legend">
@@ -269,6 +288,59 @@ const COUNTRY = {
 "Egypt":["이집트",30.04,31.24],"Libya":["리비아",32.89,13.19],"Tunisia":["튀니지",36.81,10.18],"Algeria":["알제리",36.75,3.06],"Morocco":["모로코",34.02,-6.84],"Western Sahara":["서사하라",27.13,-13.20],"Sudan":["수단",15.50,32.56],"South Sudan":["남수단",4.86,31.57],"Ethiopia":["에티오피아",9.03,38.74],"Somalia":["소말리아",2.05,45.32],"Kenya":["케냐",-1.29,36.82],"United Republic of Tanzania":["탄자니아",-6.16,35.75],"Uganda":["우간다",0.35,32.58],"Rwanda":["르완다",-1.94,30.06],"Burundi":["부룬디",-3.38,29.36],"Democratic Republic of the Congo":["콩고민주공화국",-4.32,15.31],"Republic of the Congo":["콩고",-4.20,15.27],"Gabon":["가봉",0.39,9.45],"Cameroon":["카메룬",3.87,11.52],"Nigeria":["나이지리아",9.06,7.49],"Niger":["니제르",13.51,2.11],"Chad":["차드",12.13,15.06],"Mali":["말리",12.64,-8.00],"Mauritania":["모리타니",18.07,-15.96],"Senegal":["세네갈",14.69,-17.44],"Guinea":["기니",9.64,-13.58],"Guinea Bissau":["기니비사우",11.86,-15.60],"Sierra Leone":["시에라리온",8.47,-13.23],"Liberia":["라이베리아",6.29,-10.76],"Ivory Coast":["코트디부아르",6.82,-5.28],"Ghana":["가나",5.60,-0.19],"Togo":["토고",6.13,1.22],"Benin":["베냉",6.50,2.60],"Burkina Faso":["부르키나파소",12.37,-1.52],"Gambia":["감비아",13.45,-16.58],"Angola":["앙골라",-8.84,13.23],"Zambia":["잠비아",-15.39,28.32],"Zimbabwe":["짐바브웨",-17.83,31.05],"Mozambique":["모잠비크",-25.97,32.58],"Malawi":["말라위",-13.96,33.77],"Madagascar":["마다가스카르",-18.88,47.51],"Namibia":["나미비아",-22.56,17.08],"Botswana":["보츠와나",-24.63,25.92],"South Africa":["남아프리카공화국",-25.75,28.19],"Lesotho":["레소토",-29.31,27.48],"Swaziland":["에스와티니",-26.31,31.13],"Eritrea":["에리트레아",15.34,38.93],"Djibouti":["지부티",11.59,43.15],
 "Australia":["호주",-35.28,149.13],"New Zealand":["뉴질랜드",-41.29,174.78],"Papua New Guinea":["파푸아뉴기니",-9.44,147.18],"Fiji":["피지",-18.14,178.44],"Solomon Islands":["솔로몬제도",-9.43,159.96],"Vanuatu":["바누아투",-17.73,168.33],"New Caledonia":["뉴칼레도니아",-22.26,166.46]};
 const koName = n => (COUNTRY[n]||[n])[0];
+/* 검색: 한글/영문 입력 → 나라 목록 */
+function onSearch(q){
+  const box = document.getElementById('searchList');
+  q = (q||'').trim().toLowerCase();
+  if(!q){ box.classList.remove('show'); box.innerHTML=''; return; }
+
+  if(curTab==='world'){
+    const hits = [];
+    for(const eng in COUNTRY){
+      const ko = COUNTRY[eng][0];
+      if(ko.toLowerCase().includes(q) || eng.toLowerCase().includes(q)) hits.push({eng, ko});
+    }
+    hits.sort((a,b)=>{
+      const ap=a.ko.toLowerCase().startsWith(q)?0:1, bp=b.ko.toLowerCase().startsWith(q)?0:1;
+      return ap-bp || a.ko.localeCompare(b.ko);
+    });
+    if(!hits.length){ box.innerHTML='<div class="none">검색 결과가 없어요 🥲</div>'; box.classList.add('show'); return; }
+    box.innerHTML = hits.slice(0,20).map(hu=>{
+      const recs=recsFor('world',hu.eng), wish=isWish('world',hu.eng); let tag='';
+      if(recs.some(r=>r.who==='both')) tag='<span class="tag" style="background:var(--both)">같이</span>';
+      else if(recs.length) tag='<span class="tag" style="background:var(--me)">다녀옴</span>';
+      else if(wish) tag='<span class="tag" style="background:var(--wish-line)">위시</span>';
+      return `<div class="si" onclick="pickSearch('world','${hu.eng.replace(/'/g,"\\'")}')">🌍 ${hu.ko}${tag}</div>`;
+    }).join('');
+    box.classList.add('show');
+  } else {
+    // 한국: KR_CENTER의 시·군 이름으로 검색
+    const units = Object.keys(KR_CENTER);
+    if(!units.length){ box.innerHTML='<div class="none">지도를 불러오는 중이에요… 잠시 후 다시 검색해주세요</div>'; box.classList.add('show'); return; }
+    const hits = units.filter(u=>u.toLowerCase().includes(q));
+    hits.sort((a,b)=>{
+      const ap=a.toLowerCase().startsWith(q)?0:1, bp=b.toLowerCase().startsWith(q)?0:1;
+      return ap-bp || a.localeCompare(b);
+    });
+    if(!hits.length){ box.innerHTML='<div class="none">검색 결과가 없어요 🥲</div>'; box.classList.add('show'); return; }
+    box.innerHTML = hits.slice(0,20).map(u=>{
+      const recs=recsFor('korea',u), wish=isWish('korea',u); let tag='';
+      if(recs.some(r=>r.who==='both')) tag='<span class="tag" style="background:var(--both)">같이</span>';
+      else if(recs.length) tag='<span class="tag" style="background:var(--me)">다녀옴</span>';
+      else if(wish) tag='<span class="tag" style="background:var(--wish-line)">위시</span>';
+      return `<div class="si" onclick="pickSearch('korea','${u.replace(/'/g,"\\'")}')">🇰🇷 ${u}${tag}</div>`;
+    }).join('');
+    box.classList.add('show');
+  }
+}
+function pickSearch(scope, name){
+  document.getElementById('searchList').classList.remove('show');
+  document.getElementById('searchInput').value='';
+  const c = scope==='world' ? WORLD_CENTER[name] : KR_CENTER[name];
+  if(c){ map.setView(c, Math.max(map.getZoom(), scope==='world'?4:9)); }
+  highlight(scope, name);
+  openDetail(scope, name);
+}
 /* 축소 상태에서도 이름을 보여줄 큰 나라들 */
 const MAJOR = new Set(["러시아","캐나다","미국","중국","브라질","호주","인도","아르헨티나","카자흐스탄","알제리","콩고민주공화국","사우디아라비아","멕시코","인도네시아","수단","리비아","이란","몽골","페루","차드","니제르","앙골라","말리","남아프리카공화국","콜롬비아","에티오피아","볼리비아","이집트","탄자니아","나이지리아","베네수엘라","파키스탄","터키","칠레","프랑스","스페인","우크라이나","스웨덴","독일","일본","핀란드","폴란드","이탈리아","영국","노르웨이","태국","미얀마","그린란드","대한민국"]);
 
@@ -288,8 +360,7 @@ function pinKey(n){
   document.querySelectorAll('#lock .dot').forEach((d,i)=>d.classList.toggle('on', i < pinBuf.length));
   if(pinBuf.length === 4){
     if(pinBuf === CONFIG.PIN){
-      localStorage.setItem('tm_unlocked','1');
-      unlock();
+      unlock();  // 기억하지 않음 — 매번 입력
     } else {
       document.getElementById('lockmsg').textContent = '앗, 비밀번호가 달라요 🥲';
       pinBuf = "";
@@ -466,6 +537,10 @@ async function switchTab(t){
   document.getElementById('tab-world').classList.toggle('on', t==='world');
   document.getElementById('tab-korea').classList.toggle('on', t==='korea');
   document.getElementById('title').textContent = t==='world' ? '🌍 우리 여행 지도' : '🇰🇷 우리나라 정복 지도';
+  document.getElementById('searchbar').style.display = 'block';
+  document.getElementById('searchInput').placeholder = t==='world' ? '🔍 나라 검색 (예: 터키, 일본)' : '🔍 도시 검색 (예: 속초, 경주)';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchList').classList.remove('show');
   if(t==='korea') await loadKorea();
   renderAll();
 }
@@ -500,7 +575,7 @@ function isWish(scope, name){
 function renderAll(){ renderStats(); renderMap(); renderDday(); }
 function upcomingPlans(){
   const today = new Date(); today.setHours(0,0,0,0);
-  return state.wishes.filter(w=>w.planDate)
+  return state.wishes.filter(w=>w.planDate && w.scope===curTab)   // 현재 탭(세계/한국)만
     .map(w=>({...w, days: Math.round((new Date(w.planDate+'T00:00:00')-today)/86400000)}))
     .filter(w=>w.days >= 0)
     .sort((a,b)=>a.days-b.days);
@@ -517,7 +592,7 @@ function renderDday(){
 function openPlanList(){
   const plans = upcomingPlans();
   if(!plans.length) return;
-  let html = '<h2>✈️ 다가오는 여행</h2>';
+  let html = `<h2>✈️ 다가오는 ${curTab==='korea'?'국내 ':''}여행</h2>`;
   plans.forEach(p=>{
     const dd = p.days===0 ? 'D-DAY' : 'D-'+p.days;
     html += `<div class="rec" onclick="closeSheets();highlight('${p.scope}','${p.name.replace(/'/g,"\\'")}');openDetail('${p.scope}','${p.name.replace(/'/g,"\\'")}')" style="cursor:pointer">
@@ -619,11 +694,12 @@ function renderWorldLabels(){
     const kn = koName(name);
     const show = st || wish || (z>=5) || (z>=2.5 && MAJOR.has(kn)) ;
     if(!show) return;
+    const crowned = tripCount('world', name) >= 2;
     let txt = '';
-    if(tripCount('world', name) >= 2) txt += '👑 ';
+    if(crowned) txt += '<span class="cr">👑</span> ';
     txt += kn;
     if(st==='solo') txt += `<br><span style="color:#8A6B6B">${unitNames('world', name)}</span>`;
-    L.marker(center, {icon: L.divIcon({className:'name-label', html: txt, iconSize:null}), interactive:false}).addTo(labelGroup);
+    L.marker(center, {icon: L.divIcon({className:'name-label'+(crowned?' crown':''), html: txt, iconSize:null}), interactive:false}).addTo(labelGroup);
   });
 }
 /* 한국 지역명 라벨: 확대하면 전 지역, 축소 상태에선 색칠/위시 지역만 */
@@ -635,12 +711,13 @@ function renderKoreaUnitLabels(){
     const st = unitStatus('korea', unit);
     const wish = isWish('korea', unit);
     if(!showAll && !st && !wish) return;
+    const crowned = tripCount('korea', unit) >= 2;
     let txt = '';
-    if(tripCount('korea', unit) >= 2) txt += '👑 ';
+    if(crowned) txt += '<span class="cr">👑</span> ';
     txt += unit;
-    if(st==='solo') txt += `<br><span style="color:#C93B3B">${unitNames('korea', unit)}</span>`;
+    if(st==='solo') txt += `<br><span style="color:#8A6B6B">${unitNames('korea', unit)}</span>`;
     const mk = L.marker(KR_CENTER[unit], {
-      icon: L.divIcon({className:'name-label clickable', html: txt, iconSize:null}),
+      icon: L.divIcon({className:'name-label clickable'+(crowned?' crown':''), html: txt, iconSize:null}),
       interactive:true
     });
     mk.on('click', ()=>{ highlight('korea', unit); openDetail('korea', unit); });
@@ -648,17 +725,98 @@ function renderKoreaUnitLabels(){
   });
 }
 function renderStats(){
+  let chips = '';
+  if(curTab==='world'){
+    const w = state.records.filter(r=>r.scope==='world');
+    const countries = new Set(w.map(r=>r.country));
+    const bothCountries = new Set(w.filter(r=>r.who==='both').map(r=>r.country));
+    const cities = new Set(w.map(r=>r.city));
+    const wishN = state.wishes.filter(x=>x.scope==='world').length;
+    chips = `
+      <div class="stat" onclick="openStatList('both')">💕 같이 간 나라 <b>${bothCountries.size}</b></div>
+      <div class="stat" onclick="openStatList('countries')">🌍 방문 나라 <b>${countries.size}</b></div>
+      <div class="stat" onclick="openStatList('cities')">📍 도시 <b>${cities.size}</b></div>
+      <div class="stat" onclick="openStatList('wish')">⭐ 세계 위시 <b>${wishN}</b></div>`;
+  } else {
+    const k = state.records.filter(r=>r.scope==='korea');
+    const regions = new Set(k.map(r=>r.city));
+    const bothRegions = new Set(k.filter(r=>r.who==='both').map(r=>r.city));
+    const wishN = state.wishes.filter(x=>x.scope==='korea').length;
+    chips = `
+      <div class="stat" onclick="openStatList('korea-both')">💕 같이 간 곳 <b>${bothRegions.size}</b></div>
+      <div class="stat" onclick="openStatList('korea')">🇰🇷 다녀온 곳 <b>${regions.size}</b></div>
+      <div class="stat" onclick="openStatList('korea-wish')">⭐ 국내 위시 <b>${wishN}</b></div>`;
+  }
+  document.getElementById('stats').innerHTML = chips;
+}
+/* 통계 칩 클릭 → 해당 목록 시트 */
+function openStatList(kind){
+  let title='', items=[];  // items: {scope, name, sub, tagText, tagColor}
   const w = state.records.filter(r=>r.scope==='world');
-  const countries = new Set(w.map(r=>r.country));
-  const bothCountries = new Set(w.filter(r=>r.who==='both').map(r=>r.country));
-  const cities = new Set(w.map(r=>r.city));
-  const kr = new Set(state.records.filter(r=>r.scope==='korea').map(r=>r.city));
-  document.getElementById('stats').innerHTML = `
-    <div class="stat">💕 같이 간 나라 <b>${bothCountries.size}</b></div>
-    <div class="stat">🌍 방문 나라 <b>${countries.size}</b></div>
-    <div class="stat">📍 도시 <b>${cities.size}</b></div>
-    <div class="stat">🇰🇷 국내 <b>${kr.size}곳</b></div>
-    <div class="stat">⭐ 위시 <b>${state.wishes.length}</b></div>`;
+  if(kind==='both'){
+    title='💕 같이 간 나라';
+    [...new Set(w.filter(r=>r.who==='both').map(r=>r.country))].sort().forEach(c=>{
+      const cs=[...new Set(w.filter(r=>r.country===c&&r.who==='both').map(r=>r.city))];
+      items.push({scope:'world', name:c, sub:cs.join(', '), tagText:'같이', tagColor:'var(--both)'});
+    });
+  } else if(kind==='countries'){
+    title='🌍 방문한 나라';
+    [...new Set(w.map(r=>r.country))].sort().forEach(c=>{
+      const recs=recsFor('world',c);
+      const both=recs.some(r=>r.who==='both');
+      const cs=[...new Set(recs.map(r=>r.city))];
+      items.push({scope:'world', name:c, sub:cs.join(', '),
+        tagText: both?'같이':unitNames('world',c), tagColor: both?'var(--both)':'var(--me)'});
+    });
+  } else if(kind==='cities'){
+    title='📍 다녀온 도시';
+    w.slice().sort((a,b)=>a.country.localeCompare(b.country)).forEach(r=>{
+      const both=r.who==='both';
+      items.push({scope:'world', name:r.city, sub:koName(r.country)+(r.date?' · '+r.date:''),
+        tagText: both?'같이':(r.who==='me'?CONFIG.NAME_ME:CONFIG.NAME_PARTNER),
+        tagColor: both?'var(--both)':(r.who==='me'?'var(--me)':'var(--pt)'), openName:r.country});
+    });
+  } else if(kind==='wish'){
+    title='⭐ 세계 위시리스트';
+    state.wishes.filter(x=>x.scope==='world').forEach(wi=>{
+      items.push({scope:'world', name:wi.name,
+        sub: wi.planDate?('✈️ '+wi.planDate+' 예정'):'', tagText: wi.planDate?ddayText(wi.planDate):'위시',
+        tagColor: wi.planDate?'var(--both)':'var(--wish-line)', openName:wi.name});
+    });
+  } else if(kind==='korea'){
+    title='🇰🇷 다녀온 국내';
+    [...new Set(state.records.filter(r=>r.scope==='korea').map(r=>r.city))].sort().forEach(c=>{
+      const recs=recsFor('korea',c);
+      const both=recs.some(r=>r.who==='both');
+      items.push({scope:'korea', name:c, sub:'',
+        tagText: both?'같이':unitNames('korea',c), tagColor: both?'var(--both)':'var(--me)'});
+    });
+  } else if(kind==='korea-both'){
+    title='💕 같이 간 국내';
+    [...new Set(state.records.filter(r=>r.scope==='korea'&&r.who==='both').map(r=>r.city))].sort().forEach(c=>{
+      items.push({scope:'korea', name:c, sub:'', tagText:'같이', tagColor:'var(--both)'});
+    });
+  } else if(kind==='korea-wish'){
+    title='⭐ 국내 위시리스트';
+    state.wishes.filter(x=>x.scope==='korea').forEach(wi=>{
+      items.push({scope:'korea', name:wi.name,
+        sub: wi.planDate?('✈️ '+wi.planDate+' 예정'):'', tagText: wi.planDate?ddayText(wi.planDate):'위시',
+        tagColor: wi.planDate?'var(--both)':'var(--wish-line)', openName:wi.name});
+    });
+  }
+  let html = `<h2>${title} <span style="color:var(--sub);font-size:15px">${items.length}</span></h2>`;
+  if(!items.length){ html += `<p class="hint" style="margin-top:10px">아직 없어요.</p>`; }
+  items.forEach(it=>{
+    const open = it.openName || it.name;
+    html += `<div class="rec" onclick="closeSheets();highlight('${it.scope}','${String(open).replace(/'/g,"\\'")}');openDetail('${it.scope}','${String(open).replace(/'/g,"\\'")}')" style="cursor:pointer">
+      <div class="r1"><span class="city">${it.scope==='world'&&!/^🇰🇷/.test(it.name)?koName(it.name):it.name}</span>
+        <span class="who" style="background:${it.tagColor}">${it.tagText}</span></div>
+      ${it.sub?`<div class="meta">${esc(it.sub)}</div>`:''}
+    </div>`;
+  });
+  document.getElementById('detailBody').innerHTML = html;
+  document.getElementById('sheetbg').classList.add('show');
+  document.getElementById('detailSheet').classList.add('show');
 }
 
 /* ── 상세 시트 ── */
@@ -874,6 +1032,7 @@ function closeList(){ document.getElementById('listview').classList.remove('show
 
 /* ── 공통 ── */
 function closeSheets(){
+  document.getElementById('searchList').classList.remove('show');
   document.getElementById('sheetbg').classList.remove('show');
   document.getElementById('detailSheet').classList.remove('show');
   document.getElementById('formSheet').classList.remove('show');
@@ -896,8 +1055,7 @@ function toast(msg){
   toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
 }
 
-/* 시작: 이전에 잠금 해제한 폰이면 바로 입장 */
-if(localStorage.getItem('tm_unlocked')==='1') unlock();
+/* 입장 시마다 PIN 필수 — 자동 입장 없음 */
 </script>
 </body>
 </html>
