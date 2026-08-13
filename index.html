@@ -49,11 +49,11 @@ header h1{font-size:22px}
 .stat{flex-shrink:0;background:var(--card);cursor:pointer;border-radius:14px;padding:7px 12px;font-size:12.5px;box-shadow:0 1px 5px rgba(92,73,72,.06);white-space:nowrap}
 .stat b{font-family:'Jua';font-size:14px}
 #syncdot{font-size:11px;color:var(--sub)}
-#searchbar{position:relative;margin-top:8px;display:none}
-#searchbar.show{display:block}
-#searchBtn{background:var(--card);border-radius:10px;width:34px;height:32px;font-size:15px;box-shadow:0 1px 4px rgba(92,73,72,.1)}
+#searchbar{position:relative;margin-top:8px;display:none;width:100%}
+#searchbar.show{display:block!important}
+#searchBtn{background:var(--card);border-radius:10px;width:34px;height:32px;font-size:15px;box-shadow:0 1px 4px rgba(92,73,72,.1);cursor:pointer;flex-shrink:0}
 #searchBtn.on{background:var(--me);}
-#searchInput{font-size:14px;padding:9px 12px;border-radius:12px;background:#fff}
+#searchInput{font-size:14px;padding:9px 12px;border-radius:12px;background:#fff;width:100%;box-sizing:border-box}
 #searchList{position:absolute;left:0;right:0;top:44px;z-index:600;background:#fff;border-radius:12px;box-shadow:0 4px 16px rgba(92,73,72,.18);max-height:260px;overflow-y:auto;display:none}
 #searchList.show{display:block}
 #searchList .si{padding:11px 14px;font-size:14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;cursor:pointer}
@@ -220,11 +220,11 @@ nav button.on{color:var(--red)}
       <div id="cityField">
         <label>도시 이름</label>
         <div style="display:flex;gap:8px">
-          <input id="f-city" placeholder="예: 이스탄불, Kota Kinabalu">
+          <input id="f-city" placeholder="예: 이스탄불, Kota Kinabalu" oninput="geoPick=null;document.getElementById('geoResult').style.display='none'">
           <button class="btn ghost" style="flex:0 0 76px;padding:10px" onclick="geocodeCity()">찾기</button>
         </div>
         <div class="geo-result" id="geoResult"></div>
-        <div class="hint">도시 이름을 입력하고 [찾기]를 누르면 지도 위치를 자동으로 찾아요. 한글/영문 모두 가능!</div>
+        <div class="hint">도시 이름을 입력하고 <b>[찾기]를 꼭 눌러</b> 위치를 확인해야 저장돼요. 한글/영문 모두 가능!</div>
       </div>
       <label>누가 다녀왔나요?</label>
       <div class="chips" id="whoChips">
@@ -428,9 +428,10 @@ function setSync(s){
 
 /* ── 초기화 ── */
 async function initApp(){
-  map = L.map('map', {zoomControl:false, attributionControl:true, worldCopyJump:true, preferCanvas:true});
+  map = L.map('map', {zoomControl:false, attributionControl:true, preferCanvas:true,
+    maxBounds:[[-85,-180],[85,180]], maxBoundsViscosity:1.0});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
-    {attribution:'© OpenStreetMap © CARTO', maxZoom:12}).addTo(map);
+    {attribution:'© OpenStreetMap © CARTO', maxZoom:12, noWrap:true}).addTo(map);
   markerGroup = L.layerGroup().addTo(map);
   labelGroup = L.layerGroup().addTo(map);
   unitLabelGroup = L.layerGroup().addTo(map);
@@ -716,9 +717,9 @@ function renderWorldLabels(){
     const st = unitStatus('world', name);
     const wish = isWish('world', name);
     const kn = koName(name);
-    const show = st || wish || (z>=5) || (z>=2.5 && MAJOR.has(kn)) ;
-    if(!show) return;
     const crowned = tripCount('world', name) >= 2;
+    const show = st || wish || crowned || (z>=5) || (z>=2.5 && MAJOR.has(kn)) ;
+    if(!show) return;
     let txt = '';
     if(crowned) txt += '<span class="cr">👑</span> ';
     txt += kn;
@@ -983,7 +984,7 @@ async function geocodeCity(){
     box.innerHTML = `✅ 찾았어요: <b>${esc(res[0].display_name.split(',').slice(0,2).join(','))}</b>`;
   }catch(e){ box.innerHTML='검색 오류 — 잠시 후 다시 시도해주세요'; geoPick=null; }
 }
-function saveRecord(){
+async function saveRecord(){
   if(!pickedWho){ toast('누가 다녀왔는지 골라주세요!'); return; }
   if(editing){
     const r = state.records.find(x=>x.id===editing);
@@ -996,7 +997,8 @@ function saveRecord(){
     if(formCtx.scope==='world'){
       city = document.getElementById('f-city').value.trim();
       if(!city){ toast('도시 이름을 입력해주세요!'); return; }
-      if(geoPick){ lat=geoPick.lat; lng=geoPick.lng; }
+      if(!geoPick){ toast('[찾기]를 눌러 도시 위치를 먼저 확인해주세요 📍'); return; }
+      lat=geoPick.lat; lng=geoPick.lng;
     } else {
       city = formCtx.name;
     }
