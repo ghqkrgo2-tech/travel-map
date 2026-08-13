@@ -457,13 +457,16 @@ async function loadWorld(){
       fixAntimeridian(f);                          // 날짜변경선 가로줄 보정
       try{
         const c = COUNTRY[f.properties.name];
-        let pos = (c && c.length>2) ? L.latLng(c[1],c[2]) : countryLabelPos(f);
-        // 좌표 유효성 검사: 위도 -60~85, 경도 -180~180 벗어나면 본토 무게중심으로 대체
-        if(!pos || pos.lat<-60 || pos.lat>85 || pos.lng<-180 || pos.lng>180){
+        // 사전에 수도좌표가 있으면 무조건 그걸 사용 (무게중심 계산이 분단국가에서 오작동하는 것 방지)
+        let pos;
+        if(c && c.length>2 && Math.abs(c[1])<=85 && Math.abs(c[2])<=180){
+          pos = L.latLng(c[1], c[2]);
+        } else {
           pos = countryLabelPos(f);
+          if(!pos || pos.lat<-60 || pos.lat>85 || pos.lng<-180 || pos.lng>180) pos = null;
         }
-        WORLD_CENTER[f.properties.name] = pos;
-      }catch(e){ WORLD_CENTER[f.properties.name] = countryLabelPos(f); }
+        if(pos) WORLD_CENTER[f.properties.name] = pos;
+      }catch(e){}
     });
   }
 }
@@ -944,8 +947,19 @@ function editRecord(id){
   editing = id;
   formCtx = {scope: r.scope, country: r.country};
   document.getElementById('formTitle').textContent = `${r.city} 기록 수정`;
-  document.getElementById('cityField').style.display = 'none';
   resetForm();
+  // 세계 기록은 도시 필드 표시 (좌표 수정 가능)
+  document.getElementById('cityField').style.display = r.scope==='world' ? 'block' : 'none';
+  if(r.scope==='world'){
+    document.getElementById('f-city').value = r.city||'';
+    // 기존 좌표가 있으면 유지 (찾기 안 눌러도 저장되게), 없으면 찾기 필요
+    if(r.lat && r.lng){
+      geoPick = {lat:r.lat, lng:r.lng};
+      const box=document.getElementById('geoResult');
+      box.style.display='block';
+      box.innerHTML = `✅ 저장된 위치 있음 (도시명 바꾸면 [찾기] 다시 눌러주세요)`;
+    }
+  }
   setWho(r.who); setStar(r.rating||0);
   document.getElementById('f-date').value = r.date||'';
   document.getElementById('f-memo').value = r.memo||'';
@@ -988,6 +1002,13 @@ async function saveRecord(){
   if(!pickedWho){ toast('누가 다녀왔는지 골라주세요!'); return; }
   if(editing){
     const r = state.records.find(x=>x.id===editing);
+    // 세계 기록이면 도시명/좌표도 갱신 (찾기 필수)
+    if(r.scope==='world'){
+      const city = document.getElementById('f-city').value.trim();
+      if(!city){ toast('도시 이름을 입력해주세요!'); return; }
+      if(!geoPick){ toast('[찾기]를 눌러 도시 위치를 확인해주세요 📍'); return; }
+      r.city = city; r.lat = geoPick.lat; r.lng = geoPick.lng;
+    }
     r.who = pickedWho; r.rating = pickedStar;
     r.date = document.getElementById('f-date').value;
     r.memo = document.getElementById('f-memo').value.trim();
