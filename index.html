@@ -260,6 +260,7 @@ nav button.on{color:var(--me)}
 .sheet{position:fixed;left:0;right:0;bottom:-100%;max-height:86%;background:var(--bg);border-radius:24px 24px 0 0;z-index:101;transition:bottom .25s ease;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
 .sheet.show{bottom:0}
 .sheet .grab{width:40px;height:4px;background:var(--line);border-radius:2px;margin:10px auto 4px;flex-shrink:0}
+.sheet-close{position:absolute;top:10px;right:14px;font-size:12.5px;color:var(--sub);background:var(--card);border-radius:12px;padding:5px 11px;box-shadow:0 1px 4px rgba(92,73,72,.12)}
 .sheet .body{overflow-y:auto;padding:8px 18px 24px}
 .sheet h2{font-size:20px;display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .form label{display:block;font-size:13px;color:var(--sub);margin:14px 0 5px}
@@ -306,6 +307,31 @@ nav button.on{color:var(--me)}
 .subtabs button{flex:0 0 auto;padding:8px 14px;border-radius:14px;background:var(--card);border:1.5px solid var(--line);font-size:13.5px}
 .subtabs button.on{background:var(--me);border-color:var(--me);color:#fff;font-family:'Jua'}
 #subBody{flex:1;overflow-y:auto;padding:6px 0 30px}
+
+/* ═══════════ 보완 (디자인 마감) ═══════════ */
+/* 여정 안내 링크 (여행↔위시 연결) */
+.linklike{margin-top:12px;color:var(--me);font-family:'Jua';font-size:13.5px;text-decoration:underline;text-underline-offset:3px}
+
+/* 지도 상세 시트 = 지도 위에 뜨는 플로팅 카드 (비모달) */
+#mapSheet{left:8px;right:8px;max-width:600px;margin:0 auto;border-radius:20px;max-height:60%;background:rgba(255,249,242,.97);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 8px 30px rgba(92,73,72,.28)}
+#mapSheet.show{bottom:12px}
+
+/* 색 대비: 위시 노랑 계열 가독성 */
+.badge.wish{background:#A9852B;color:#fff}
+.wish-card-actions .promote{background:#F7E6B8;color:#7E610F}
+.stat.rank{color:#7E610F}
+
+/* 마이크로 인터랙션 */
+@keyframes screenIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.screen.on{animation:screenIn .22s ease}
+.btn:active,.stat:active,.daychip:active,.chip:active{transform:scale(.97)}
+.pack-item .chk{transition:transform .14s ease,background .14s ease,border-color .14s ease}
+.pack-item.done .chk{animation:chkPop .24s ease}
+@keyframes chkPop{0%{transform:scale(.7)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+
+/* 빈 화면 톤 통일 보강 */
+.empty-state .fab-row{margin-top:4px}
+.empty-state .fab-row .btn{max-width:220px;margin:0 auto}
 </style>
 </head>
 <body>
@@ -459,22 +485,25 @@ function getTrip(id){ return state.trips.find(t => t.id === id) || null; }
    모든 여행의 cities를 모아 방문 나라/도시 집합을 만든다.
    (3단계 map.js가 이 결과로 지도를 칠한다.) */
 function deriveVisited(){
-  const countries = {};  // country → { who:Set, count }
+  const countries = {};  // country → { who:Set, count(=방문한 여행 수), trips:[] }
   const cities = {};     // "country|city" → { city, country, lat, lng, who:Set, count, trips:[] }
   state.trips.forEach(t => {
+    // 한 여행에서 도시를 여러 개 가도 그 나라는 "1회 방문"으로 센다 (여행당 1회)
+    const seenCountry = new Set(), seenCity = new Set();
     (t.cities || []).forEach(c => {
       if(!c.country) return;
-      const co = countries[c.country] || (countries[c.country] = { who: new Set(), count: 0 });
-      co.count++; if(c.who) co.who.add(c.who);
+      const co = countries[c.country] || (countries[c.country] = { who: new Set(), count: 0, trips: [] });
+      if(c.who) co.who.add(c.who);
+      if(!seenCountry.has(c.country)){ co.count++; co.trips.push(t.id); seenCountry.add(c.country); }
       if(c.city){
         const key = c.country + '|' + c.city;
         const ci = cities[key] || (cities[key] = {
           city: c.city, country: c.country, lat: c.lat, lng: c.lng,
           who: new Set(), count: 0, trips: []
         });
-        ci.count++; if(c.who) ci.who.add(c.who);
+        if(c.who) ci.who.add(c.who);
         if(!ci.lat && c.lat){ ci.lat = c.lat; ci.lng = c.lng; }
-        ci.trips.push(t.id);
+        if(!seenCity.has(key)){ ci.count++; ci.trips.push(t.id); seenCity.add(key); }  // 같은 여행 내 중복 도시도 1회
       }
     });
   });
@@ -642,6 +671,7 @@ function esc(s){
 let curTripId = null;      // 상세로 열려있는 여행
 let editTripId = null;     // 폼에서 수정 중인 여행 (null이면 새 여행)
 let formSel = [];          // 폼에서 선택된 나라(영문키) 목록
+let tripFormSeed = null;   // 위시 승격 등 새 여행 폼의 사전 입력값
 let curSubtab = 'cities';
 
 /* ── 날짜 유틸 ── */
@@ -695,7 +725,10 @@ function renderTrips(){
     <button class="btn primary" style="flex:0;padding:9px 16px" onclick="openTripForm()">+ 새 여행</button></div>`;
   if(!trips.length){
     html += `<div class="empty-state"><span class="big">🧳</span>
-      아직 만든 여행이 없어요.<br>첫 여행을 만들어볼까요?</div>`;
+      아직 만든 여행이 없어요.<br>첫 여행을 만들어볼까요?
+      <div class="fab-row"><button class="btn primary" onclick="openTripForm()">새 여행 만들기</button></div>
+      ${state.wishes.length?`<button class="linklike" onclick="switchTab('wish')">⭐ 위시에 담아둔 곳에서 만들기</button>`:''}
+    </div>`;
   } else {
     html += trips.map(t=>{
       const dd=tripDday(t);
@@ -717,11 +750,12 @@ function renderTrips(){
 }
 
 /* ═══════════ 새 여행 / 수정 폼 ═══════════ */
-function openTripForm(id){
+function openTripForm(id, seed){
   ensureTripDom();
   editTripId = id || null;
-  const t = id ? getTrip(id) : null;
-  document.getElementById('tripFormTitle').textContent = t ? '여행 수정' : '새 여행 만들기';
+  tripFormSeed = id ? null : (seed || null);
+  const t = id ? getTrip(id) : tripFormSeed;
+  document.getElementById('tripFormTitle').textContent = id ? '여행 수정' : (tripFormSeed ? '위시에서 여행 만들기' : '새 여행 만들기');
   document.getElementById('tf-name').value = t ? (t.name||'') : '';
   document.getElementById('tf-start').value = t ? (t.startDate||'') : '';
   document.getElementById('tf-end').value = t ? (t.endDate||'') : '';
@@ -729,12 +763,25 @@ function openTripForm(id){
   document.getElementById('tf-country').value = '';
   document.getElementById('tf-picklist').classList.remove('show');
   renderSelChips();
+  onTripStartChange();   // 시작일이 미리 채워져 있으면(위시 승격 등) 종료일 기본값 세팅
   document.getElementById('sheetbg').classList.add('show');
   document.getElementById('tripFormSheet').classList.add('show');
 }
 function closeTripForm(){
   document.getElementById('sheetbg').classList.remove('show');
   document.getElementById('tripFormSheet').classList.remove('show');
+  tripFormSeed=null;
+}
+/* 시작일을 정하면 종료일 기본값 = 다음날, 종료일 달력 최소값도 시작일로 (고르기 쉽게) */
+function onTripStartChange(){
+  const s=document.getElementById('tf-start').value;
+  const endEl=document.getElementById('tf-end');
+  if(!s){ endEl.removeAttribute('min'); return; }
+  endEl.min=s;
+  if(!endEl.value || endEl.value<s){
+    const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+1);
+    endEl.value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
 }
 function filterCountries(q){
   const box=document.getElementById('tf-picklist');
@@ -775,6 +822,8 @@ function saveTripForm(){
   const end=document.getElementById('tf-end').value;
   if(!name){ toast('여행 이름을 입력해주세요'); return; }
   if(start && end && end<start){ toast('종료일이 시작일보다 빨라요'); return; }
+  const promotedWishId=!editTripId&&tripFormSeed?.wishId;
+  if(promotedWishId&&start&&!end){ toast('위시에서 여행을 만들 때는 종료일도 입력해주세요'); return; }
   if(editTripId){
     const t=getTrip(editTripId);
     if(t){ t.name=name; t.startDate=start; t.endDate=end||start; t.countries=[...formSel]; stamp(t); }
@@ -783,6 +832,10 @@ function saveTripForm(){
     t.name=name; t.startDate=start; t.endDate=end||start; t.countries=[...formSel]; stamp(t);
     state.trips.push(t);
     curTripId=t.id;
+    if(promotedWishId){
+      markDeleted(promotedWishId);
+      state.wishes=state.wishes.filter(w=>w.id!==promotedWishId);
+    }
   }
   const wasEdit = !!editTripId;
   persist();
@@ -868,7 +921,7 @@ function ensureTripDom(){
         <label>여행 이름</label>
         <input id="tf-name" placeholder="예: 다낭 가족여행">
         <label>기간</label>
-        <div class="daterow"><input id="tf-start" type="date"><span>~</span><input id="tf-end" type="date"></div>
+        <div class="daterow"><input id="tf-start" type="date" onchange="onTripStartChange()"><span>~</span><input id="tf-end" type="date"></div>
         <label>나라 (여러 개 가능)</label>
         <div class="picker">
           <input id="tf-country" placeholder="🔍 나라 검색 (예: 베트남, Japan)" autocomplete="off"
@@ -932,11 +985,16 @@ function matchKrUnit(city){
 }
 function deriveKoreaUnits(){
   const u={};
-  state.trips.forEach(t=>(t.cities||[]).forEach(c=>{
-    if(!isKorea(c.country)) return;
-    const unit=matchKrUnit(c.city); if(!unit) return;
-    (u[unit]=u[unit]||{who:new Set(),count:0}); u[unit].count++; if(c.who)u[unit].who.add(c.who);
-  }));
+  state.trips.forEach(t=>{
+    const seen=new Set();   // 여행당 한 지역 1회
+    (t.cities||[]).forEach(c=>{
+      if(!isKorea(c.country)) return;
+      const unit=matchKrUnit(c.city); if(!unit) return;
+      (u[unit]=u[unit]||{who:new Set(),count:0});
+      if(c.who)u[unit].who.add(c.who);
+      if(!seen.has(unit)){ u[unit].count++; seen.add(unit); }
+    });
+  });
   return u;
 }
 
@@ -1022,12 +1080,14 @@ async function loadKorea(){
 
 /* ═══════════ 지도 그리기 ═══════════ */
 function initMap(){
-  map=L.map('map',{zoomControl:false,attributionControl:true,preferCanvas:true,maxBounds:[[-90,-200],[90,200]],maxBoundsViscosity:0.5});
+  map=L.map('map',{zoomControl:true,attributionControl:true,preferCanvas:true,maxBounds:[[-90,-200],[90,200]],maxBoundsViscosity:0.5});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap © CARTO',maxZoom:12,noWrap:true}).addTo(map);
   markerGroup=L.layerGroup().addTo(map);
   labelGroup=L.layerGroup().addTo(map);
   unitLabelGroup=L.layerGroup().addTo(map);
   map.on('zoomend',()=>{ if(mapScope==='korea')renderKoreaLabels(); else renderWorldLabels(); });
+  // 빈 지도(바다 등) 탭하면 상세 시트 닫고 선택 해제 — 시트가 지도를 막지 않으므로 자유롭게 확대/이동 후 닫기
+  map.on('click',()=>{ if(document.getElementById('mapSheet')?.classList.contains('show')) closeMapSheet(); });
   map.setView([25,60],2);
   mapInited=true;
 }
@@ -1275,7 +1335,7 @@ function addWish(who){
 /* 시트 표시/닫기 */
 function showMapSheet(html){
   document.getElementById('mapSheetBody').innerHTML=html;
-  document.getElementById('mapSheetBg').classList.add('show');
+  // 배경 오버레이를 띄우지 않음 → 시트가 떠 있어도 지도 확대/이동 가능 (나라 하이라이트 유지)
   document.getElementById('mapSheet').classList.add('show');
 }
 function closeMapSheet(){
@@ -1289,7 +1349,7 @@ function closeMapSheet(){
 }
 
 /* ═══════════ 📍 도시 서브탭 (여행 상세 안) ═══════════ */
-let cityForm={tripId:null,editId:null,who:null,star:0,geo:null};
+let cityForm={tripId:null,editId:null,who:null,geo:null};
 function renderCities(trip,body){
   const cs=trip.cities||[];
   let html=`<div class="fab-row"><button class="btn primary" onclick="openCityForm('${trip.id}')">+ 도시 추가</button></div>`;
@@ -1299,7 +1359,7 @@ function renderCities(trip,body){
     const wt=c.who==='both'?'같이 💕':c.who==='me'?CONFIG.NAME_ME:CONFIG.NAME_PARTNER;
     return `<div class="city-item">
       <div class="r1"><span class="cname">📍 ${esc(c.city)}</span><span class="badge" style="background:${wb}">${wt}</span></div>
-      <div class="cmeta">${esc(koName(c.country))}${c.rating?' · '+'⭐'.repeat(c.rating):''}${c.lat?'':' · <span style="color:var(--me)">위치없음</span>'}</div>
+      <div class="cmeta">${esc(koName(c.country))}${c.lat?'':' · <span style="color:var(--me)">위치없음</span>'}</div>
       ${c.memo?`<div class="cmeta">${esc(c.memo)}</div>`:''}
       <div class="cactions"><button onclick="openCityForm('${trip.id}','${c.id}')">수정</button><button onclick="deleteCity('${trip.id}','${c.id}')">삭제</button></div>
     </div>`;
@@ -1309,7 +1369,7 @@ function renderCities(trip,body){
 function openCityForm(tripId,cityId){
   ensureMapDom();
   const t=getTrip(tripId); const c=cityId?(t.cities||[]).find(x=>x.id===cityId):null;
-  cityForm={tripId,editId:cityId||null,who:c?c.who:null,star:c?c.rating||0:0,geo:c&&c.lat?{lat:c.lat,lng:c.lng}:null};
+  cityForm={tripId,editId:cityId||null,who:c?c.who:null,geo:c&&c.lat?{lat:c.lat,lng:c.lng}:null};
   document.getElementById('cf-title').textContent=c?'도시 수정':'도시 추가';
   document.getElementById('cf-city').value=c?c.city:'';
   // 나라 선택: 여행의 나라들 + (한국)
@@ -1318,15 +1378,12 @@ function openCityForm(tripId,cityId){
   const gr=document.getElementById('cf-geo');
   if(c&&c.lat){ gr.style.display='block'; gr.innerHTML='✅ 저장된 위치 있음 (도시명 바꾸면 [찾기] 다시)'; } else gr.style.display='none';
   document.querySelectorAll('#cf-who .chip').forEach(x=>x.classList.toggle('on',x.dataset.who===(c?c.who:'')));
-  renderCityStars();
   document.getElementById('cf-memo').value=c?c.memo||'':'';
   document.getElementById('mapSheetBg').classList.add('show');
   document.getElementById('citySheet').classList.add('show');
 }
 function closeCityForm(){document.getElementById('mapSheetBg').classList.remove('show');document.getElementById('citySheet').classList.remove('show');}
 function setCityWho(w){cityForm.who=w;document.querySelectorAll('#cf-who .chip').forEach(x=>x.classList.toggle('on',x.dataset.who===w));}
-function setCityStar(n){cityForm.star=n;renderCityStars();}
-function renderCityStars(){document.querySelectorAll('#cf-stars span').forEach((s,i)=>s.classList.toggle('on',i<cityForm.star));}
 async function geocodeCity(){
   const q=document.getElementById('cf-city').value.trim();
   const country=document.getElementById('cf-country').value;
@@ -1351,9 +1408,9 @@ function saveCity(){
   const memo=document.getElementById('cf-memo').value.trim();
   if(cityForm.editId){
     const c=t.cities.find(x=>x.id===cityForm.editId);
-    Object.assign(c,{city,country,who:cityForm.who,rating:cityForm.star,memo,lat:cityForm.geo.lat,lng:cityForm.geo.lng}); stamp(c);
+    Object.assign(c,{city,country,who:cityForm.who,memo,lat:cityForm.geo.lat,lng:cityForm.geo.lng}); delete c.rating; stamp(c);
   } else {
-    t.cities.push(stamp({id:uid('c'),city,country,who:cityForm.who,rating:cityForm.star,memo,lat:cityForm.geo.lat,lng:cityForm.geo.lng}));
+    t.cities.push(stamp({id:uid('c'),city,country,who:cityForm.who,memo,lat:cityForm.geo.lat,lng:cityForm.geo.lng}));
   }
   stamp(t); persist(); closeCityForm();
   renderTripDetail();
@@ -1372,7 +1429,7 @@ function ensureMapDom(){
   const w=document.createElement('div');
   w.innerHTML=`
   <div class="sheet-bg" id="mapSheetBg" onclick="closeMapSheet();closeCityForm()"></div>
-  <div class="sheet" id="mapSheet"><div class="grab"></div><div class="body" id="mapSheetBody"></div></div>
+  <div class="sheet" id="mapSheet"><div class="grab" onclick="closeMapSheet()" style="cursor:pointer"></div><button class="sheet-close" onclick="closeMapSheet()">✕ 닫기</button><div class="body" id="mapSheetBody"></div></div>
   <div class="sheet" id="citySheet"><div class="grab"></div><div class="body">
     <h2 id="cf-title">도시 추가</h2>
     <div class="form">
@@ -1391,8 +1448,6 @@ function ensureMapDom(){
         <button class="chip pt" data-who="partner" onclick="setCityWho('partner')">👩 ${CONFIG.NAME_PARTNER}</button>
         <button class="chip both" data-who="both" onclick="setCityWho('both')">💕 같이</button>
       </div>
-      <label>별점</label>
-      <div class="stars" id="cf-stars"><span onclick="setCityStar(1)">⭐</span><span onclick="setCityStar(2)">⭐</span><span onclick="setCityStar(3)">⭐</span><span onclick="setCityStar(4)">⭐</span><span onclick="setCityStar(5)">⭐</span></div>
       <label>한 줄 메모 (선택)</label>
       <input id="cf-memo" placeholder="예: 미케비치 노을 미쳤음">
       <div class="btnrow"><button class="btn ghost" onclick="closeCityForm()">취소</button><button class="btn primary" onclick="saveCity()">저장</button></div>
@@ -2016,16 +2071,13 @@ function deleteWish(id){
 function promoteWish(id){
   const w=state.wishes.find(x=>x.id===id); if(!w) return;
   const place=wishName(w);
-  if(!confirm(`"${place}" 위시로 새 여행을 만들까요?\n위시 목록에서는 제거돼요.`)) return;
-  const trip=newTrip();
-  trip.name=`${place} 여행`;
-  trip.countries=w.scope==='world'?[w.name]:['South Korea'];
-  trip.startDate=w.planDate||'';
-  trip.endDate=w.planDate||'';
-  stamp(trip); state.trips.push(trip);
-  markDeleted(w.id); state.wishes=state.wishes.filter(x=>x.id!==id);
-  persist(); switchTab('trips'); openTrip(trip.id);
-  toast('새 여행으로 옮겼어요 ✈️');
+  switchTab('trips');
+  openTripForm(null,{
+    name:`${place} 여행`,
+    countries:w.scope==='world'?[w.name]:['South Korea'],
+    startDate:w.planDate||'', endDate:'', wishId:w.id
+  });
+  toast('종료일을 입력하고 여행을 만들어주세요 ✈️');
 }
 
 function ensureWishDom(){
@@ -2068,7 +2120,7 @@ function renderReview(trip,body){
   if(album) links.push(`<a class="review-link" href="${esc(album)}" target="_blank" rel="noopener">📷 공유 앨범 <span>열기 ↗</span></a>`);
   body.innerHTML=`<div class="review-wrap">
     <section class="review-hero ${review.done?'done':''}">
-      <span>${review.done?'🎉':'📝'}</span><div><h3>${review.done?'후기를 완성했어요!':'여행의 순간을 남겨봐요'}</h3><p>${reviewRating?reviewStars(reviewRating)+'  '+reviewRating+'점':'별점과 한 줄 메모를 기록할 수 있어요.'}</p></div>
+      <span>${review.done?'🎉':'📝'}</span><div><h3>${review.done?'후기를 완성했어요!':'여행의 순간을 남겨봐요'}</h3><p>${reviewRating?`이번 여행 ${reviewRating}점`:'다녀온 뒤 별점과 한 줄 메모를 남겨보세요.'}</p></div>
     </section>
     ${links.length?`<section class="review-links">${links.join('')}</section>`:''}
     <section class="review-form form">
