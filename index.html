@@ -372,6 +372,16 @@ nav button.on{color:var(--me)}
 .person-card .pnums b{font-family:'Jua';font-size:15px;color:var(--text)}
 /* 후기 읽기 메모 */
 .review-read-memo{background:var(--card);border-radius:14px;padding:13px 15px;font-size:14.5px;line-height:1.6;box-shadow:0 1px 5px rgba(92,73,72,.06);white-space:pre-wrap}
+
+/* 홈 리포트 */
+.home-report-link{width:100%;border:0;text-align:left;cursor:pointer}.home-report-link:hover{transform:translateY(-1px)}
+.person-card{font:inherit;text-align:left;cursor:pointer}.person-card small{display:block;margin-top:9px;color:var(--sub);font-size:11px}.person-card:hover{transform:translateY(-1px)}
+.home-report-screen{display:none;position:fixed;inset:0;z-index:80;overflow-y:auto;background:var(--bg);padding-bottom:28px}.home-report-screen.show{display:block}
+.report-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:14px;background:rgba(255,250,245,.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);font-size:12px;color:var(--sub)}
+.report-body{max-width:680px;margin:0 auto;padding:0 14px}.report-hero{margin:18px 0 12px;padding:22px 20px;border-radius:20px;background:linear-gradient(135deg,#F8E1DD,#F5EEE1);color:var(--text)}.report-hero p{font-size:12px;color:var(--sub);margin-bottom:5px}.report-hero h2{font-family:'Jua';font-size:25px}.report-hero small{display:block;margin-top:8px;color:var(--sub)}
+.report-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.report-summary>div{min-width:0;background:var(--card);border-radius:14px;padding:12px 6px;text-align:center;box-shadow:0 1px 5px rgba(92,73,72,.06)}.report-summary b{display:block;font-family:'Jua';font-size:17px;white-space:nowrap}.report-summary span{display:block;margin-top:3px;font-size:10px;color:var(--sub)}
+.report-section{margin-top:18px}.report-section h3{font-family:'Jua';font-size:17px;margin:0 0 8px}.report-section h3 small{font-family:inherit;font-size:12px;color:var(--sub)}.report-countries{background:var(--card);border-radius:14px;padding:12px 14px;line-height:1.7;font-size:13px;color:var(--sub);box-shadow:0 1px 5px rgba(92,73,72,.06)}
+.report-trip{width:100%;display:flex;align-items:center;gap:10px;margin:8px 0;padding:12px;background:var(--card);border:0;border-radius:14px;text-align:left;box-shadow:0 1px 5px rgba(92,73,72,.06);cursor:pointer}.report-trip-icon{font-size:20px}.report-trip>span:nth-child(2){min-width:0;flex:1}.report-trip b,.report-trip small{display:block}.report-trip b{font-size:14px}.report-trip small{margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--sub)}.report-trip em{font-style:normal;font-size:11px;color:var(--sub);white-space:nowrap}.report-spend{display:flex;align-items:center;justify-content:space-between;background:#FFF4E8;border-radius:14px;padding:13px 15px}.report-spend h3{margin:0}.report-spend>b{font-family:'Jua';font-size:17px;color:var(--me)}
 </style>
 </head>
 <body>
@@ -514,10 +524,27 @@ function markDeleted(id){
 function newTrip(){
   return {
     id: uid('t'), name: '', countries: [], startDate: '', endDate: '',
+    who: '',
     cities: [], plans: [], budget: [], packing: [],
     review: { blog: '', album: '', memo: '', rating: 0, done: false },
     updatedAt: now()
   };
+}
+
+/* 여행 단위의 참여자. 기존 데이터는 도시 기록으로 한 번만 추론해 호환한다. */
+function tripWhoValue(t){
+  if(['me','partner','both'].includes(t&&t.who)) return t.who;
+  const owners=new Set(((t&&t.cities)||[]).map(c=>c.who).filter(Boolean));
+  if(owners.has('both')) return 'both';
+  const me=owners.has('me'), partner=owners.has('partner');
+  if(me&&partner) return 'mix';
+  if(me) return 'me';
+  if(partner) return 'partner';
+  return 'none';
+}
+function addTripWho(set, who){
+  if(who==='mix'){ set.add('me'); set.add('partner'); }
+  else if(['me','partner','both'].includes(who)) set.add(who);
 }
 function getTrip(id){ return state.trips.find(t => t.id === id) || null; }
 
@@ -529,11 +556,11 @@ function deriveVisited(){
   const cities = {};     // "country|city" → { city, country, lat, lng, who:Set, count, trips:[] }
   state.trips.forEach(t => {
     // 한 여행에서 도시를 여러 개 가도 그 나라는 "1회 방문"으로 센다 (여행당 1회)
-    const seenCountry = new Set(), seenCity = new Set();
+    const seenCountry = new Set(), seenCity = new Set(), owner=tripWhoValue(t);
     (t.cities || []).forEach(c => {
       if(!c.country) return;
       const co = countries[c.country] || (countries[c.country] = { who: new Set(), count: 0, trips: [] });
-      if(c.who) co.who.add(c.who);
+      addTripWho(co.who, owner);
       if(!seenCountry.has(c.country)){ co.count++; co.trips.push(t.id); seenCountry.add(c.country); }
       if(c.city){
         const key = c.country + '|' + c.city;
@@ -541,7 +568,7 @@ function deriveVisited(){
           city: c.city, country: c.country, lat: c.lat, lng: c.lng,
           who: new Set(), count: 0, trips: []
         });
-        if(c.who) ci.who.add(c.who);
+        addTripWho(ci.who, owner);
         if(!ci.lat && c.lat){ ci.lat = c.lat; ci.lng = c.lng; }
         if(!seenCity.has(key)){ ci.count++; ci.trips.push(t.id); seenCity.add(key); }  // 같은 여행 내 중복 도시도 1회
       }
@@ -715,16 +742,11 @@ let tripFormSeed = null;   // 위시 승격 등 새 여행 폼의 사전 입력�
 let curSubtab = 'cities';
 let tripListScope = 'world';   // 여행 목록 세계/한국 구분
 let tripListWhoFilter = 'all'; // 여행 목록 who 필터 (all|me|partner|both)
-let tripWhoFilter = 'all';     // 여행 상세 who 필터 (all|me|partner|both)
+let tripFormWho = '';
 
 /* 여행 전체가 누구 여행인지 분류 (도시들의 who 집계) */
 function tripWhoCat(t){
-  const s=new Set((t.cities||[]).map(c=>c.who).filter(Boolean));
-  if(s.has('both')) return 'both';        // 같이 간 도시가 하나라도 있으면 같이
-  const me=s.has('me'), pt=s.has('partner');
-  if(me&&pt) return 'mix';                // 각자 따로
-  if(me) return 'me'; if(pt) return 'pt';
-  return 'none';
+  return tripWhoValue(t);
 }
 function tripWhoBadge(cat){
   if(cat==='both') return {label:'💕 같이',cls:'both'};
@@ -733,14 +755,10 @@ function tripWhoBadge(cat){
   if(cat==='pt')   return {label:'👩 '+CONFIG.NAME_PARTNER,cls:'pt'};
   return {label:'',cls:'none'};
 }
-/* 목록 who 필터 통과 (같이 여행 포함) */
+/* 목록 who 필터: 여행 참여자가 정확히 일치할 때만 표시 */
 function tripListWhoPass(t){
   const f=tripListWhoFilter; if(f==='all') return true;
-  const s=new Set((t.cities||[]).map(c=>c.who).filter(Boolean));
-  if(f==='me') return s.has('me')||s.has('both');
-  if(f==='partner') return s.has('partner')||s.has('both');
-  if(f==='both') return s.has('both');
-  return true;
+  return tripWhoValue(t)===f;
 }
 function setTripListWho(w){ tripListWhoFilter=w; renderTrips(); }
 
@@ -751,14 +769,6 @@ function tripIsKorea(t){
   if(cs.length) return cs.every(isK);
   const cities=t.cities||[];
   return cities.length ? cities.every(c=>isK(c.country)) : false;
-}
-/* who 필터 통과 (도시·가계부: me|partner|both) */
-function passWho(w){ return tripWhoFilter==='all' || w===tripWhoFilter; }
-/* 준비물 who(공용|윤호|가진) 필터 통과 */
-function passPackWho(w){
-  if(tripWhoFilter==='all') return true;
-  const map={me:CONFIG.NAME_ME, partner:CONFIG.NAME_PARTNER, both:'공용'};
-  return w===map[tripWhoFilter];
 }
 function reviewStarsMini(r){ return r?('★'.repeat(r)):''; }
 
@@ -829,7 +839,7 @@ function renderTrips(){
     </div>`;
   } else {
     html += trips.map(t=>{
-      const dd=tripDday(t), cat=tripWhoCat(t), wb=tripWhoBadge(cat);
+      const dd=tripDday(t), cat=tripWhoCat(t);
       const flags=(t.countries||[]).map(c=>`<span class="mini">${esc(koName(c))}</span>`).join('');
       const counts=[];
       if((t.cities||[]).length) counts.push(`📍 ${t.cities.length}`);
@@ -841,7 +851,7 @@ function renderTrips(){
         <span class="dday ${dd.cls}">${dd.label}</span>
         <div class="tname">${esc(t.name)||'(이름 없음)'}${rating?` <span class="card-stars">${reviewStarsMini(rating)}</span>`:''}</div>
         <div class="tmeta">${fmtPeriod(t)}${counts.length?' · '+counts.join('  '):''}</div>
-        <div class="tflags">${wb.label?`<span class="badge ${wb.cls}">${wb.label}</span>`:''}${flags}</div>
+        <div class="tflags">${flags}</div>
       </div>`;
     }).join('');
   }
@@ -859,13 +869,19 @@ function openTripForm(id, seed){
   document.getElementById('tf-name').value = t ? (t.name||'') : '';
   document.getElementById('tf-start').value = t ? (t.startDate||'') : '';
   document.getElementById('tf-end').value = t ? (t.endDate||'') : '';
+  tripFormWho = t ? tripWhoValue(t) : '';
   formSel = t ? [...(t.countries||[])] : [];
   document.getElementById('tf-country').value = '';
   document.getElementById('tf-picklist').classList.remove('show');
   renderSelChips();
+  renderTripWhoChips();
   onTripStartChange();   // 시작일이 미리 채워져 있으면(위시 승격 등) 종료일 기본값 세팅
   document.getElementById('sheetbg').classList.add('show');
   document.getElementById('tripFormSheet').classList.add('show');
+}
+function setTripFormWho(w){ tripFormWho=w; renderTripWhoChips(); }
+function renderTripWhoChips(){
+  document.querySelectorAll('#tf-who .chip').forEach(x=>x.classList.toggle('on',x.dataset.who===tripFormWho));
 }
 function closeTripForm(){
   document.getElementById('sheetbg').classList.remove('show');
@@ -921,15 +937,21 @@ function saveTripForm(){
   const start=document.getElementById('tf-start').value;
   const end=document.getElementById('tf-end').value;
   if(!name){ toast('여행 이름을 입력해주세요'); return; }
+  if(!tripFormWho){ toast('누가 간 여행인지 골라주세요'); return; }
   if(start && end && end<start){ toast('종료일이 시작일보다 빨라요'); return; }
   const promotedWishId=!editTripId&&tripFormSeed?.wishId;
   if(promotedWishId&&start&&!end){ toast('위시에서 여행을 만들 때는 종료일도 입력해주세요'); return; }
   if(editTripId){
     const t=getTrip(editTripId);
-    if(t){ t.name=name; t.startDate=start; t.endDate=end||start; t.countries=[...formSel]; stamp(t); }
+    if(t){
+      t.name=name; t.startDate=start; t.endDate=end||start; t.countries=[...formSel]; t.who=tripFormWho;
+      // 도시에는 별도 참여자를 고르지 않는다. 여행 참여자를 동기화해 구 데이터도 정리한다.
+      (t.cities||[]).forEach(c=>{ c.who=tripFormWho; stamp(c); });
+      stamp(t);
+    }
   } else {
     const t=newTrip();
-    t.name=name; t.startDate=start; t.endDate=end||start; t.countries=[...formSel]; stamp(t);
+    t.name=name; t.startDate=start; t.endDate=end||start; t.countries=[...formSel]; t.who=tripFormWho; stamp(t);
     state.trips.push(t);
     curTripId=t.id;
     if(promotedWishId){
@@ -956,7 +978,7 @@ const SUBTABS = [
 ];
 function openTrip(id){
   ensureTripDom();
-  curTripId=id; curSubtab='cities'; tripWhoFilter='all';
+  curTripId=id; curSubtab='cities';
   renderTripDetail();
   document.getElementById('tripDetail').classList.add('show');
 }
@@ -974,17 +996,12 @@ function renderTripDetail(){
   document.getElementById('td-subtabs').innerHTML = SUBTABS.map(s=>
     `<button class="${s.key===curSubtab?'on':''}" onclick="switchSubtab('${s.key}')">${s.label}</button>`
   ).join('');
-  // who 필터바 (도시·가계부·준비물에서만)
+  // 여행 상세는 여행 전체 정보만 보여준다. 참여자 필터는 목록에서만 제공한다.
   const fbar=document.getElementById('td-whofilter');
-  if(['cities','budget','packing'].includes(curSubtab)){
-    const opt=[['all','전체',''],['me','🧑 '+CONFIG.NAME_ME,'me'],['partner','👩 '+CONFIG.NAME_PARTNER,'pt'],['both','💕 같이','both']];
-    fbar.innerHTML=opt.map(([k,lb,cls])=>`<button class="wf ${cls} ${k===tripWhoFilter?'on':''}" onclick="setTripWhoFilter('${k}')">${lb}</button>`).join('');
-    fbar.style.display='flex';
-  } else { fbar.style.display='none'; fbar.innerHTML=''; }
+  fbar.style.display='none'; fbar.innerHTML='';
   renderSubtab();
 }
 function switchSubtab(k){ curSubtab=k; renderTripDetail(); }
-function setTripWhoFilter(w){ tripWhoFilter=w; renderTripDetail(); }
 /* 각 서브탭 내용 — 각 모듈이 전역 render 함수를 정의하면 그걸 호출.
    아직 없으면 안내 placeholder. */
 function renderSubtab(){
@@ -1030,6 +1047,12 @@ function ensureTripDom(){
         <input id="tf-name" placeholder="예: 다낭 가족여행">
         <label>기간</label>
         <div class="daterow"><input id="tf-start" type="date" onchange="onTripStartChange()"><span>~</span><input id="tf-end" type="date"></div>
+        <label>누가 간 여행인가요?</label>
+        <div class="chips" id="tf-who">
+          <button class="chip me" data-who="me" onclick="setTripFormWho('me')">🧑 ${CONFIG.NAME_ME}</button>
+          <button class="chip pt" data-who="partner" onclick="setTripFormWho('partner')">👩 ${CONFIG.NAME_PARTNER}</button>
+          <button class="chip both" data-who="both" onclick="setTripFormWho('both')">💕 같이</button>
+        </div>
         <label>나라 (여러 개 가능)</label>
         <div class="picker">
           <input id="tf-country" placeholder="🔍 나라 검색 (예: 베트남, Japan)" autocomplete="off"
@@ -1095,12 +1118,12 @@ function matchKrUnit(city){
 function deriveKoreaUnits(){
   const u={};
   state.trips.forEach(t=>{
-    const seen=new Set();   // 여행당 한 지역 1회
+    const seen=new Set(), owner=tripWhoValue(t);   // 여행당 한 지역 1회
     (t.cities||[]).forEach(c=>{
       if(!isKorea(c.country)) return;
       const unit=matchKrUnit(c.city); if(!unit) return;
       (u[unit]=u[unit]||{who:new Set(),count:0});
-      if(c.who)u[unit].who.add(c.who);
+      addTripWho(u[unit].who, owner);
       if(!seen.has(unit)){ u[unit].count++; seen.add(unit); }
     });
   });
@@ -1381,10 +1404,27 @@ function statNames(filter){
     return true;
   }).sort((a,b)=>koName(a).localeCompare(koName(b)));
 }
+/* 개인/같이 통계는 "나라 수"가 아닌 "여행별 방문 기록 수"를 쓴다.
+   한 여행 안의 같은 나라는 한 번만 만들되, 다른 여행의 같은 나라는 별도 행으로 남긴다. */
+function mapTripVisits(kind){
+  const rows=[];
+  sortedTrips().forEach(t=>{
+    if(tripWhoValue(t)!==kind) return;
+    const places=new Map();
+    (t.cities||[]).forEach(c=>{
+      const name=mapScope==='world' ? c.country : (isKorea(c.country)?matchKrUnit(c.city):null);
+      if(!name) return;
+      if(!places.has(name)) places.set(name,[]);
+      places.get(name).push(c.city);
+    });
+    places.forEach((cities,name)=>rows.push({name,cities,t}));
+  });
+  return rows;
+}
 function renderStats(){
   const el=document.getElementById('stats'); if(!el) return;
   const src=mapScope==='world'?V.countries:KU;
-  const me=statNames('me').length, pt=statNames('partner').length, both=statNames('both').length;
+  const me=mapTripVisits('me').length, pt=mapTripVisits('partner').length, both=mapTripVisits('both').length;
   const total=Object.keys(src).length;
   const wishN=state.wishes.filter(w=>w.scope===mapScope).length;
   const unitLabel=mapScope==='world'?'🌍 나라':'🇰🇷 지역';
@@ -1424,10 +1464,18 @@ function openStatList(kind){
       `<div class="rec" style="cursor:pointer" onclick="closeMapSheet();highlight('world','${String(c.country).replace(/'/g,"\\'")}');openCountryDetail('world','${String(c.country).replace(/'/g,"\\'")}')">
         <div class="r1"><span class="city">${esc(c.city)}</span>${whoBadge(c.who)}</div>
         <div class="meta">${esc(koName(c.country))}</div></div>`).join('');
-  } else {
-    const T={all:scope==='world'?'🌍 방문한 나라':'🇰🇷 다녀온 지역',me:`🧑 ${CONFIG.NAME_ME}가 간 곳`,partner:`👩 ${CONFIG.NAME_PARTNER}가 간 곳`,both:'💕 같이 간 곳'};
+  } else if(['me','partner','both'].includes(kind)) {
+    const T={me:`🧑 ${CONFIG.NAME_ME}가 간 곳`,partner:`👩 ${CONFIG.NAME_PARTNER}이가 간 곳`,both:'💕 같이 간 곳'};
     title=T[kind];
-    const names=statNames(kind);
+    rows=mapTripVisits(kind).map(({name,cities,t})=>{
+      const nm=scope==='world'?koName(name):name;
+      return `<div class="rec" style="cursor:pointer" onclick="closeMapSheet();highlight('${scope}','${String(name).replace(/'/g,"\\'")}');openCountryDetail('${scope}','${String(name).replace(/'/g,"\\'")}')">
+        <div class="r1"><span class="city">${esc(nm)}</span><span class="who">${esc(t.name)||'이름 없는 여행'}</span></div>
+        <div class="meta">${esc(fmtPeriod(t))}${cities.length?' · '+cities.map(esc).join(', '):''}</div></div>`;
+    }).join('');
+  } else {
+    title=scope==='world'?'🌍 방문한 나라':'🇰🇷 다녀온 지역';
+    const names=statNames('all');
     rows=names.map(name=>{
       const nm=scope==='world'?koName(name):name;
       return `<div class="rec" style="cursor:pointer" onclick="closeMapSheet();highlight('${scope}','${String(name).replace(/'/g,"\\'")}');openCountryDetail('${scope}','${String(name).replace(/'/g,"\\'")}')">
@@ -1475,12 +1523,12 @@ function openCountryDetail(scope,name){
     html+=`<div class="summary-line">✈️ 관련 여행 <b>${trips.length}</b>개</div>`;
     trips.forEach(t=>{
       const cs=(t.cities||[]).filter(c=>scope==='world'?c.country===name:matchKrUnit(c.city)===name);
-      const s=new Set(cs.map(c=>c.who).filter(Boolean));
+      const owner=tripWhoValue(t);
       let wl,wc;
-      if(s.has('both')){wl='💕 같이';wc='var(--both)';}
-      else if(s.has('me')&&s.has('partner')){wl='🧑👩 각자';wc='var(--mix)';}
-      else if(s.has('me')){wl='🧑 '+CONFIG.NAME_ME;wc='var(--me)';}
-      else if(s.has('partner')){wl='👩 '+CONFIG.NAME_PARTNER;wc='var(--pt)';}
+      if(owner==='both'){wl='💕 같이';wc='var(--both)';}
+      else if(owner==='mix'){wl='🧑👩 각자';wc='var(--mix)';}
+      else if(owner==='me'){wl='🧑 '+CONFIG.NAME_ME;wc='var(--me)';}
+      else if(owner==='partner'){wl='👩 '+CONFIG.NAME_PARTNER;wc='var(--pt)';}
       else {wl='';wc='var(--sub)';}
       html+=`<div class="rec" onclick="closeMapSheet();openTrip('${t.id}')" style="cursor:pointer">
         <div class="r1"><span class="city">${esc(t.name)||'(이름 없음)'}</span>${wl?`<span class="who" style="background:${wc}">${wl}</span>`:''}</div>
@@ -1529,16 +1577,14 @@ function closeMapSheet(){
 }
 
 /* ═══════════ 📍 도시 서브탭 (여행 상세 안) ═══════════ */
-let cityForm={tripId:null,editId:null,who:null,geo:null};
+let cityForm={tripId:null,editId:null,geo:null};
 function renderCities(trip,body){
-  const cs=(trip.cities||[]).filter(c=>typeof passWho!=='function'||passWho(c.who));
+  const cs=trip.cities||[];
   let html=`<div class="fab-row"><button class="btn primary" onclick="openCityForm('${trip.id}')">+ 도시 추가</button></div>`;
   if(!cs.length) html+=`<div class="empty-state"><span class="big">📍</span>${(trip.cities||[]).length?'이 조건에 맞는 도시가 없어요.':'다녀온 도시를 추가하면<br>지도가 자동으로 칠해져요.'}</div>`;
   else html+=cs.map(c=>{
-    const wb=c.who==='both'?'var(--both)':c.who==='me'?'var(--me)':'var(--pt)';
-    const wt=c.who==='both'?'같이 💕':c.who==='me'?CONFIG.NAME_ME:CONFIG.NAME_PARTNER;
     return `<div class="city-item">
-      <div class="r1"><span class="cname">📍 ${esc(c.city)}</span><span class="badge" style="background:${wb}">${wt}</span></div>
+      <div class="r1"><span class="cname">📍 ${esc(c.city)}</span></div>
       <div class="cmeta">${esc(koName(c.country))}${c.lat?'':' · <span style="color:var(--me)">위치없음</span>'}</div>
       ${c.memo?`<div class="cmeta">${esc(c.memo)}</div>`:''}
       <div class="cactions"><button onclick="openCityForm('${trip.id}','${c.id}')">수정</button><button onclick="deleteCity('${trip.id}','${c.id}')">삭제</button></div>
@@ -1549,7 +1595,7 @@ function renderCities(trip,body){
 function openCityForm(tripId,cityId){
   ensureMapDom();
   const t=getTrip(tripId); const c=cityId?(t.cities||[]).find(x=>x.id===cityId):null;
-  cityForm={tripId,editId:cityId||null,who:c?c.who:null,geo:c&&c.lat?{lat:c.lat,lng:c.lng}:null};
+  cityForm={tripId,editId:cityId||null,geo:c&&c.lat?{lat:c.lat,lng:c.lng}:null};
   document.getElementById('cf-title').textContent=c?'도시 수정':'도시 추가';
   document.getElementById('cf-city').value=c?c.city:'';
   // 나라 선택: 여행의 나라들 + (한국)
@@ -1557,13 +1603,11 @@ function openCityForm(tripId,cityId){
   document.getElementById('cf-country').innerHTML=opts.map(o=>`<option value="${esc(o)}"${c&&c.country===o?' selected':''}>${esc(koName(o))}</option>`).join('');
   const gr=document.getElementById('cf-geo');
   if(c&&c.lat){ gr.style.display='block'; gr.innerHTML='✅ 저장된 위치 있음 (도시명 바꾸면 [찾기] 다시)'; } else gr.style.display='none';
-  document.querySelectorAll('#cf-who .chip').forEach(x=>x.classList.toggle('on',x.dataset.who===(c?c.who:'')));
   document.getElementById('cf-memo').value=c?c.memo||'':'';
   document.getElementById('mapSheetBg').classList.add('show');
   document.getElementById('citySheet').classList.add('show');
 }
 function closeCityForm(){document.getElementById('mapSheetBg').classList.remove('show');document.getElementById('citySheet').classList.remove('show');}
-function setCityWho(w){cityForm.who=w;document.querySelectorAll('#cf-who .chip').forEach(x=>x.classList.toggle('on',x.dataset.who===w));}
 async function geocodeCity(){
   const q=document.getElementById('cf-city').value.trim();
   const country=document.getElementById('cf-country').value;
@@ -1583,14 +1627,15 @@ function saveCity(){
   const city=document.getElementById('cf-city').value.trim();
   const country=document.getElementById('cf-country').value;
   if(!city){toast('도시 이름을 입력해주세요');return;}
-  if(!cityForm.who){toast('누가 다녀왔는지 골라주세요');return;}
+  const owner=tripWhoValue(t);
+  if(!['me','partner','both'].includes(owner)){toast('여행 수정에서 참여자를 먼저 골라주세요');return;}
   if(!cityForm.geo){toast('[찾기]를 눌러 위치를 확인해주세요 📍');return;}
   const memo=document.getElementById('cf-memo').value.trim();
   if(cityForm.editId){
     const c=t.cities.find(x=>x.id===cityForm.editId);
-    Object.assign(c,{city,country,who:cityForm.who,memo,lat:cityForm.geo.lat,lng:cityForm.geo.lng}); delete c.rating; stamp(c);
+    Object.assign(c,{city,country,who:owner,memo,lat:cityForm.geo.lat,lng:cityForm.geo.lng}); delete c.rating; stamp(c);
   } else {
-    t.cities.push(stamp({id:uid('c'),city,country,who:cityForm.who,memo,lat:cityForm.geo.lat,lng:cityForm.geo.lng}));
+    t.cities.push(stamp({id:uid('c'),city,country,who:owner,memo,lat:cityForm.geo.lat,lng:cityForm.geo.lng}));
   }
   stamp(t); persist(); closeCityForm();
   renderTripDetail();
@@ -1622,12 +1667,6 @@ function ensureMapDom(){
       <div class="hint">도시명 입력 후 <b>[찾기]</b>를 눌러야 지도에 찍혀요.</div>
       <label>나라</label>
       <select id="cf-country"></select>
-      <label>누가 다녀왔나요?</label>
-      <div class="chips" id="cf-who">
-        <button class="chip me" data-who="me" onclick="setCityWho('me')">🧑 ${CONFIG.NAME_ME}</button>
-        <button class="chip pt" data-who="partner" onclick="setCityWho('partner')">👩 ${CONFIG.NAME_PARTNER}</button>
-        <button class="chip both" data-who="both" onclick="setCityWho('both')">💕 같이</button>
-      </div>
       <label>한 줄 메모 (선택)</label>
       <input id="cf-memo" placeholder="예: 미케비치 노을 미쳤음">
       <div class="btnrow"><button class="btn ghost" onclick="closeCityForm()">취소</button><button class="btn primary" onclick="saveCity()">저장</button></div>
@@ -1676,10 +1715,10 @@ function renderBudget(trip, body){
     </div>${settleHtml}</div>
     <div class="fab-row"><button class="btn primary" onclick="openBudgetForm('${trip.id}')">+ 지출 추가</button></div>`;
 
-  const items=(trip.budget||[]).filter(b=>typeof passWho!=='function'||passWho(b.payer))
+  const items=(trip.budget||[])
     .sort((a,b)=>(b.date||'').localeCompare(a.date||'')||b.updatedAt-a.updatedAt);
   if(!items.length){
-    html+=`<div class="empty-state"><span class="big">💰</span>${(trip.budget||[]).length?'이 조건에 맞는 지출이 없어요.':'지출을 추가하면<br>N빵 정산이 자동으로 계산돼요.'}</div>`;
+    html+=`<div class="empty-state"><span class="big">💰</span>지출을 추가하면<br>N빵 정산이 자동으로 계산돼요.</div>`;
   } else {
     let lastDate=null;
     items.forEach(b=>{
@@ -1926,7 +1965,7 @@ function renderPacking(trip, body){
   if(!total){
     html+=`<div class="empty-state"><span class="big">🎒</span>목록을 만들고 챙길 물건을<br>담아보세요. (예: 2번칸)</div>`;
   } else {
-    const shown=list.filter(x=>typeof passPackWho!=='function'||passPackWho(x.who));
+    const shown=list;
     if(!shown.length){ body.innerHTML=html+`<div class="empty-state"><span class="big">🎒</span>이 조건에 맞는 준비물이 없어요.</div>`; return; }
     // 그룹별 묶기 (등장 순서 유지)
     const groups=[]; const gmap={};
@@ -2020,104 +2059,85 @@ function ensurePackDom(){
 </script>
 <script>
 /* ═══════════════════════════════════════════════
-   home.js — 🏠 홈 대시보드
-   여행 기록과 준비 현황을 한눈에 보여주는 요약 화면
+   home.js — 🏠 홈 대시보드와 여행 리포트
    ═══════════════════════════════════════════════ */
 
 function homeToday(){
   const d=new Date();
-  const m=String(d.getMonth()+1).padStart(2,'0');
-  const day=String(d.getDate()).padStart(2,'0');
-  return `${d.getFullYear()}-${m}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-
-function homeStats(){
-  const visited=deriveVisited();
-  const days=state.trips.reduce((sum,t)=>sum+Math.max(0,tripDays(t)||0),0);
-  const spent=state.trips.reduce((sum,t)=>sum+(t.budget||[]).reduce((s,b)=>s+(+b.amount||0),0),0);
-  return {
-    countries:Object.keys(visited.countries).length,
-    cities:Object.keys(visited.cities).length,
-    days,
-    spent
-  };
+function locationSets(trips){
+  const countries=new Set(), cities=new Set();
+  trips.forEach(t=>{
+    (t.countries||[]).forEach(c=>countries.add(c));
+    (t.cities||[]).forEach(c=>{
+      if(c.country) countries.add(c.country);
+      if(c.country&&c.city) cities.add(`${c.country}|${c.city}`);
+    });
+  });
+  return {countries,cities};
 }
-
-/* 각자의 발자국 (같이 여행 포함) */
-function personStats(who){
-  const vis=deriveVisited();
-  const inSet=set=>set.has('both')||set.has(who);
-  const countries=Object.values(vis.countries).filter(c=>inSet(c.who)).length;
-  const cities=Object.values(vis.cities).filter(c=>inSet(c.who)).length;
-  const days=state.trips.filter(t=>(t.cities||[]).some(c=>c.who===who||c.who==='both'))
-    .reduce((s,t)=>s+Math.max(0,tripDays(t)||0),0);
-  return {countries,cities,days};
+function reportTrips(scope){
+  return sortedTrips().filter(t=>{
+    const who=tripWhoValue(t);
+    if(scope==='all') return true;
+    if(scope==='both') return who==='both';
+    return who===scope || who==='both'; // 개인 리포트에는 함께 간 여행 포함
+  });
 }
-
-function homeOpenTrip(id){
-  switchTab('trips');
-  openTrip(id);
+function reportStats(scope){
+  const trips=reportTrips(scope), loc=locationSets(trips);
+  const days=trips.reduce((sum,t)=>sum+Math.max(0,tripDays(t)||0),0);
+  const spent=trips.reduce((sum,t)=>sum+(t.budget||[]).reduce((s,b)=>s+(+b.amount||0),0),0);
+  const dated=trips.filter(t=>tripDays(t)>0).length;
+  return {trips,countries:loc.countries.size,cities:loc.cities.size,days,nights:Math.max(0,days-dated),spent};
 }
-
-function homeTripCard(t, kind){
-  const dday=tripDday(t);
+function homeStats(){ return reportStats('all'); }
+function personStats(who){ return reportStats(who); }
+function homeOpenTrip(id){ switchTab('trips'); openTrip(id); }
+function homeTripCard(t,kind){
+  const detail=[(t.countries||[]).map(koName).join(' · '),tripDays(t)?`${tripDays(t)}일`:''].filter(Boolean).join(' · ');
+  const label=kind==='upcoming'?tripDday(t).label:fmtPeriod(t);
+  return `<button class="home-trip" onclick="homeOpenTrip('${t.id}')"><span class="home-trip-icon">${kind==='upcoming'?'✈️':'📷'}</span><span class="home-trip-copy"><b>${esc(t.name)||'(이름 없는 여행)'}</b><small>${esc(detail)||'여행 정보'}</small></span><span class="home-trip-label">${esc(label)}</span></button>`;
+}
+function reportOwner(scope){
+  if(scope==='me') return {title:`🧑 ${CONFIG.NAME_ME}의 여행 리포트`,note:'같이 간 여행 포함'};
+  if(scope==='partner') return {title:`👩 ${CONFIG.NAME_PARTNER}의 여행 리포트`,note:'같이 간 여행 포함'};
+  return {title:'💕 우리의 여행 리포트',note:'두 사람의 모든 여행 기록'};
+}
+function reportTripRow(t){
   const countries=(t.countries||[]).map(koName).join(' · ');
-  const label=kind==='upcoming' ? dday.label : fmtPeriod(t);
-  const detail=[countries, tripDays(t)?`${tripDays(t)}일`:'' ].filter(Boolean).join(' · ');
-  return `<button class="home-trip" onclick="homeOpenTrip('${t.id}')">
-    <span class="home-trip-icon">${kind==='upcoming'?'✈️':'📷'}</span>
-    <span class="home-trip-copy"><b>${esc(t.name)||'(이름 없는 여행)'}</b><small>${esc(detail)||'여행 정보'}</small></span>
-    <span class="home-trip-label ${kind==='upcoming'&&dday.cls?'muted':''}">${esc(label)}</span>
-  </button>`;
+  const cities=(t.cities||[]).map(c=>c.city).filter(Boolean).join(' · ');
+  const duration=tripDays(t)?`${Math.max(0,tripDays(t)-1)}박 ${tripDays(t)}일`:'날짜 미정';
+  return `<button class="report-trip" onclick="closeHomeReport();homeOpenTrip('${t.id}')"><span class="report-trip-icon">✈️</span><span><b>${esc(t.name)||'(이름 없는 여행)'}</b><small>${esc(fmtPeriod(t))} · ${esc([countries,cities].filter(Boolean).join(' · ')||'장소 정보 없음')}</small></span><em>${duration}</em></button>`;
 }
-
+function ensureHomeReport(){
+  if(document.getElementById('homeReport')) return;
+  const wrap=document.createElement('section'); wrap.id='homeReport'; wrap.className='home-report-screen'; document.body.appendChild(wrap);
+}
+function openHomeReport(scope){
+  ensureHomeReport();
+  const el=document.getElementById('homeReport'), meta=reportOwner(scope), s=reportStats(scope);
+  const countryNames=[...locationSets(s.trips).countries].map(koName).sort((a,b)=>a.localeCompare(b)).join(' · ');
+  el.innerHTML=`<div class="report-head"><button class="backbtn" onclick="closeHomeReport()">← 홈</button><span>${meta.note}</span></div><main class="report-body">
+    <div class="report-hero"><p>${meta.note}</p><h2>${meta.title}</h2><small>기록된 여행을 한눈에 정리했어요.</small></div>
+    <section class="report-summary"><div><b>${s.trips.length}</b><span>번 여행</span></div><div><b>${s.countries}</b><span>개국</span></div><div><b>${s.cities}</b><span>도시</span></div><div><b>${s.nights}박 ${s.days}일</b><span>총 기간</span></div></section>
+    <section class="report-section"><h3>다녀온 나라</h3><p class="report-countries">${countryNames?esc(countryNames):'아직 기록된 나라가 없어요.'}</p></section>
+    <section class="report-section"><h3>여행 기록 <small>${s.trips.length}개</small></h3>${s.trips.length?s.trips.map(reportTripRow).join(''):'<div class="home-empty">아직 여행 기록이 없어요.</div>'}</section>
+    <section class="report-section report-spend"><h3>기록된 총 지출</h3><b>${s.spent.toLocaleString()}원</b></section>
+  </main>`;
+  el.classList.add('show');
+}
+function closeHomeReport(){ document.getElementById('homeReport')?.classList.remove('show'); }
 function renderHome(){
-  const scr=document.getElementById('screen-home');
-  if(!scr) return;
-  const stats=homeStats();
-  const meP=personStats('me'), ptP=personStats('partner');
-  const today=homeToday();
-  const trips=state.trips||[];
-  const upcoming=trips
-    .filter(t=>t.startDate && (t.endDate||t.startDate)>=today)
-    .sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''))[0];
-  const recent=trips
-    .filter(t=>(t.endDate||t.startDate||'') && (t.endDate||t.startDate)<today)
-    .sort((a,b)=>(b.endDate||b.startDate).localeCompare(a.endDate||a.startDate))[0];
-
-  scr.innerHTML=`<div class="home">
-    <section class="home-hero">
-      <p>윤호와 가진의 여행 기록</p>
-      <h2>다음 여행도<br>우리답게 채워가요 💕</h2>
-    </section>
-
-    <section class="home-section">
-      <div class="home-section-head"><h3>우리의 발자국</h3><button onclick="switchTab('map')">지도 보기 →</button></div>
-      <div class="home-stats">
-        <div><b>${stats.countries}</b><span>개국</span></div>
-        <div><b>${stats.cities}</b><span>도시</span></div>
-        <div><b>${stats.days}</b><span>일</span></div>
-        <div><b>${stats.spent.toLocaleString()}</b><span>원 지출</span></div>
-      </div>
-    </section>
-
-    <section class="home-section">
-      <div class="home-section-head"><h3>각자의 발자국</h3><small>같이 간 여행 포함</small></div>
-      <div class="person-stats">
-        <div class="person-card me"><div class="ph">🧑 ${CONFIG.NAME_ME}</div>
-          <div class="pnums"><span><b>${meP.countries}</b>개국</span><span><b>${meP.cities}</b>도시</span><span><b>${meP.days}</b>일</span></div></div>
-        <div class="person-card pt"><div class="ph">👩 ${CONFIG.NAME_PARTNER}</div>
-          <div class="pnums"><span><b>${ptP.countries}</b>개국</span><span><b>${ptP.cities}</b>도시</span><span><b>${ptP.days}</b>일</span></div></div>
-      </div>
-    </section>
-
-    <section class="home-section">
-      <div class="home-section-head"><h3>${upcoming?'다가오는 여행':'여행 계획'}</h3><button onclick="switchTab('trips')">전체 보기 →</button></div>
-      ${upcoming ? homeTripCard(upcoming,'upcoming') : `<div class="home-empty">🧳 아직 정해진 여행이 없어요.<br><button onclick="switchTab('trips')">새 여행 만들기</button></div>`}
-    </section>
-
-    ${recent ? `<section class="home-section"><div class="home-section-head"><h3>최근 여행</h3><button onclick="switchTab('trips')">전체 보기 →</button></div>${homeTripCard(recent,'recent')}</section>` : ''}
-  </div>`;
+  const scr=document.getElementById('screen-home'); if(!scr) return;
+  const stats=homeStats(), meP=personStats('me'), ptP=personStats('partner'), today=homeToday(), trips=state.trips||[];
+  const upcoming=trips.filter(t=>t.startDate&&(t.endDate||t.startDate)>=today).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''))[0];
+  const recent=trips.filter(t=>(t.endDate||t.startDate||'')&&(t.endDate||t.startDate)<today).sort((a,b)=>(b.endDate||b.startDate).localeCompare(a.endDate||a.startDate))[0];
+  scr.innerHTML=`<div class="home"><section class="home-hero"><p>윤호와 가진의 여행 기록</p><h2>다음 여행도<br>우리답게 채워가요 💕</h2></section>
+    <section class="home-section"><div class="home-section-head"><h3>우리의 발자국</h3><button onclick="openHomeReport('all')">리포트 보기 →</button></div><button class="home-stats home-report-link" onclick="openHomeReport('all')"><div><b>${stats.trips.length}</b><span>번 여행</span></div><div><b>${stats.countries}</b><span>개국</span></div><div><b>${stats.cities}</b><span>도시</span></div><div><b>${stats.days}</b><span>일</span></div></button></section>
+    <section class="home-section"><div class="home-section-head"><h3>각자의 발자국</h3><small>같이 간 여행 포함</small></div><div class="person-stats"><button class="person-card me" onclick="openHomeReport('me')"><div class="ph">🧑 ${CONFIG.NAME_ME}</div><div class="pnums"><span><b>${meP.trips.length}</b>회</span><span><b>${meP.countries}</b>개국</span><span><b>${meP.days}</b>일</span></div><small>리포트 보기 →</small></button><button class="person-card pt" onclick="openHomeReport('partner')"><div class="ph">👩 ${CONFIG.NAME_PARTNER}</div><div class="pnums"><span><b>${ptP.trips.length}</b>회</span><span><b>${ptP.countries}</b>개국</span><span><b>${ptP.days}</b>일</span></div><small>리포트 보기 →</small></button></div></section>
+    <section class="home-section"><div class="home-section-head"><h3>${upcoming?'다가오는 여행':'여행 계획'}</h3><button onclick="switchTab('trips')">전체 보기 →</button></div>${upcoming?homeTripCard(upcoming,'upcoming'):`<div class="home-empty">🧳 아직 정해진 여행이 없어요.<br><button onclick="switchTab('trips')">새 여행 만들기</button></div>`}</section>${recent?`<section class="home-section"><div class="home-section-head"><h3>최근 여행</h3><button onclick="switchTab('trips')">전체 보기 →</button></div>${homeTripCard(recent,'recent')}</section>`:''}</div>`;
 }
 </script>
 <script>
