@@ -335,8 +335,19 @@ nav button.on{color:var(--me)}
 .empty-state .fab-row{margin-top:4px}
 .empty-state .fab-row .btn{max-width:220px;margin:0 auto}
 
+/* 여행 탭 상단 컨트롤 */
+.trips-controls{padding:6px 14px 2px;display:flex;flex-direction:column;gap:7px}
+.trips-controls .whofilter{padding:0}
+.trips-new{width:100%;padding:11px}
+.badge.mix{background:var(--mix)}
+/* 여행 카드: 누구 여행인지 왼쪽 색 띠로 구분 */
+.trip-card{border-left:5px solid var(--line)}
+.trip-card.who-both{border-left-color:var(--both)}
+.trip-card.who-me{border-left-color:var(--me)}
+.trip-card.who-pt{border-left-color:var(--pt)}
+.trip-card.who-mix{border-left-color:var(--mix)}
 /* 여행 탭 세계/한국 토글 */
-#tripToggle{display:flex;gap:8px;padding:2px 14px 4px}
+#tripToggle{display:flex;gap:8px;padding:2px 0 0}
 #tripToggle button{flex:1;padding:9px 0;border-radius:14px;background:var(--card);border:1.5px solid var(--line);font-size:14px;font-family:'Jua';color:var(--sub)}
 #tripToggle button b{color:var(--text)}
 #tripToggle button.on{background:var(--me);border-color:var(--me);color:#fff}
@@ -703,7 +714,35 @@ let formSel = [];          // 폼에서 선택된 나라(영문키) 목록
 let tripFormSeed = null;   // 위시 승격 등 새 여행 폼의 사전 입력값
 let curSubtab = 'cities';
 let tripListScope = 'world';   // 여행 목록 세계/한국 구분
+let tripListWhoFilter = 'all'; // 여행 목록 who 필터 (all|me|partner|both)
 let tripWhoFilter = 'all';     // 여행 상세 who 필터 (all|me|partner|both)
+
+/* 여행 전체가 누구 여행인지 분류 (도시들의 who 집계) */
+function tripWhoCat(t){
+  const s=new Set((t.cities||[]).map(c=>c.who).filter(Boolean));
+  if(s.has('both')) return 'both';        // 같이 간 도시가 하나라도 있으면 같이
+  const me=s.has('me'), pt=s.has('partner');
+  if(me&&pt) return 'mix';                // 각자 따로
+  if(me) return 'me'; if(pt) return 'pt';
+  return 'none';
+}
+function tripWhoBadge(cat){
+  if(cat==='both') return {label:'💕 같이',cls:'both'};
+  if(cat==='mix')  return {label:'🧑👩 각자',cls:'mix'};
+  if(cat==='me')   return {label:'🧑 '+CONFIG.NAME_ME,cls:'me'};
+  if(cat==='pt')   return {label:'👩 '+CONFIG.NAME_PARTNER,cls:'pt'};
+  return {label:'',cls:'none'};
+}
+/* 목록 who 필터 통과 (같이 여행 포함) */
+function tripListWhoPass(t){
+  const f=tripListWhoFilter; if(f==='all') return true;
+  const s=new Set((t.cities||[]).map(c=>c.who).filter(Boolean));
+  if(f==='me') return s.has('me')||s.has('both');
+  if(f==='partner') return s.has('partner')||s.has('both');
+  if(f==='both') return s.has('both');
+  return true;
+}
+function setTripListWho(w){ tripListWhoFilter=w; renderTrips(); }
 
 /* 여행이 국내(한국)인지 판별: 나라가 모두 한국 (없으면 도시 나라로 추정) */
 function tripIsKorea(t){
@@ -770,23 +809,27 @@ function renderTrips(){
   ensureTripDom();
   const scr = document.getElementById('screen-trips');
   const all = sortedTrips();
-  const trips = all.filter(t=> tripListScope==='korea' ? tripIsKorea(t) : !tripIsKorea(t));
+  const scoped = all.filter(t=> tripListScope==='korea' ? tripIsKorea(t) : !tripIsKorea(t));
+  const trips = scoped.filter(tripListWhoPass);
   const worldN=all.filter(t=>!tripIsKorea(t)).length, koreaN=all.filter(t=>tripIsKorea(t)).length;
-  let html = `<div class="screen-head"><h2>✈️ 우리의 여행</h2>
-    <button class="btn primary" style="flex:0;padding:9px 16px" onclick="openTripForm()">+ 새 여행</button></div>
+  const wf=[['all','전체',''],['me','🧑 '+CONFIG.NAME_ME,'me'],['partner','👩 '+CONFIG.NAME_PARTNER,'pt'],['both','💕 같이','both']];
+  let html = `<div class="trips-controls">
     <div id="tripToggle">
       <button class="${tripListScope==='world'?'on':''}" onclick="setTripListScope('world')">🌍 세계 <b>${worldN}</b></button>
       <button class="${tripListScope==='korea'?'on':''}" onclick="setTripListScope('korea')">🇰🇷 한국 <b>${koreaN}</b></button>
-    </div>`;
+    </div>
+    <div class="whofilter">${wf.map(([k,lb,cls])=>`<button class="wf ${cls} ${k===tripListWhoFilter?'on':''}" onclick="setTripListWho('${k}')">${lb}</button>`).join('')}</div>
+    <button class="btn primary trips-new" onclick="openTripForm()">+ 새 여행 만들기</button>
+  </div>`;
   if(!trips.length){
     html += `<div class="empty-state"><span class="big">🧳</span>
-      ${tripListScope==='korea'?'국내':'해외'} 여행이 아직 없어요.<br>새 여행을 만들어볼까요?
+      ${tripListWhoFilter!=='all'?'이 조건의 ':''}${tripListScope==='korea'?'국내':'해외'} 여행이 아직 없어요.<br>새 여행을 만들어볼까요?
       <div class="fab-row"><button class="btn primary" onclick="openTripForm()">새 여행 만들기</button></div>
       ${state.wishes.length?`<button class="linklike" onclick="switchTab('wish')">⭐ 위시에 담아둔 곳에서 만들기</button>`:''}
     </div>`;
   } else {
     html += trips.map(t=>{
-      const dd=tripDday(t);
+      const dd=tripDday(t), cat=tripWhoCat(t), wb=tripWhoBadge(cat);
       const flags=(t.countries||[]).map(c=>`<span class="mini">${esc(koName(c))}</span>`).join('');
       const counts=[];
       if((t.cities||[]).length) counts.push(`📍 ${t.cities.length}`);
@@ -794,11 +837,11 @@ function renderTrips(){
       if((t.plans||[]).length) counts.push(`📅 ${t.plans.length}`);
       if((t.packing||[]).length) counts.push(`🎒 ${t.packing.length}`);
       const rating=t.review&&t.review.rating;
-      return `<div class="trip-card" onclick="openTrip('${t.id}')">
+      return `<div class="trip-card who-${cat}" onclick="openTrip('${t.id}')">
         <span class="dday ${dd.cls}">${dd.label}</span>
         <div class="tname">${esc(t.name)||'(이름 없음)'}${rating?` <span class="card-stars">${reviewStarsMini(rating)}</span>`:''}</div>
         <div class="tmeta">${fmtPeriod(t)}${counts.length?' · '+counts.join('  '):''}</div>
-        <div class="tflags">${flags}</div>
+        <div class="tflags">${wb.label?`<span class="badge ${wb.cls}">${wb.label}</span>`:''}${flags}</div>
       </div>`;
     }).join('');
   }
@@ -1417,8 +1460,14 @@ function openCountryDetail(scope,name){
   const wishObj=getWish(scope,name);
   const kn=scope==='world'?koName(name):name;
   const crown=rec&&rec.count>=2?' 👑':'';
-  const badge=rec?(rec.who.has('both')?'<span class="badge both">같이 다녀옴 💕</span>':`<span class="badge me">${whoNames(rec.who)} 다녀옴</span>`)
-    :wishObj?'<span class="badge wish">⭐ 위시</span>':'<span class="badge none">아직 안 가봄</span>';
+  let badge;
+  if(rec){
+    const b=[];
+    if(rec.who.has('both')) b.push('<span class="badge both">💕 같이</span>');
+    if(rec.who.has('me')) b.push(`<span class="badge me">🧑 ${CONFIG.NAME_ME}</span>`);
+    if(rec.who.has('partner')) b.push(`<span class="badge pt">👩 ${CONFIG.NAME_PARTNER}</span>`);
+    badge=b.join(' ')+' <span style="color:var(--sub);font-size:12px">다녀옴</span>';
+  } else badge = wishObj?'<span class="badge wish">⭐ 위시</span>':'<span class="badge none">아직 안 가봄</span>';
   let html=`<h2>${esc(kn)}${crown} ${badge}</h2>`;
   // 이 나라/지역을 방문한 여행 + 도시
   const trips=state.trips.filter(t=>(t.cities||[]).some(c=>scope==='world'?c.country===name:(isKorea(c.country)&&matchKrUnit(c.city)===name)));
@@ -1426,9 +1475,16 @@ function openCountryDetail(scope,name){
     html+=`<div class="summary-line">✈️ 관련 여행 <b>${trips.length}</b>개</div>`;
     trips.forEach(t=>{
       const cs=(t.cities||[]).filter(c=>scope==='world'?c.country===name:matchKrUnit(c.city)===name);
+      const s=new Set(cs.map(c=>c.who).filter(Boolean));
+      let wl,wc;
+      if(s.has('both')){wl='💕 같이';wc='var(--both)';}
+      else if(s.has('me')&&s.has('partner')){wl='🧑👩 각자';wc='var(--mix)';}
+      else if(s.has('me')){wl='🧑 '+CONFIG.NAME_ME;wc='var(--me)';}
+      else if(s.has('partner')){wl='👩 '+CONFIG.NAME_PARTNER;wc='var(--pt)';}
+      else {wl='';wc='var(--sub)';}
       html+=`<div class="rec" onclick="closeMapSheet();openTrip('${t.id}')" style="cursor:pointer">
-        <div class="r1"><span class="city">${esc(t.name)||'(이름 없음)'}</span><span class="who" style="background:var(--both)">${tripDday(t).label}</span></div>
-        <div class="meta">📍 ${cs.map(c=>esc(c.city)).join(', ')}</div></div>`;
+        <div class="r1"><span class="city">${esc(t.name)||'(이름 없음)'}</span>${wl?`<span class="who" style="background:${wc}">${wl}</span>`:''}</div>
+        <div class="meta">📍 ${cs.map(c=>esc(c.city)).join(', ')} · ${tripDday(t).label}</div></div>`;
     });
   } else {
     html+=`<p class="hint" style="margin-top:8px">아직 이 곳을 다녀온 여행이 없어요.</p>`;
