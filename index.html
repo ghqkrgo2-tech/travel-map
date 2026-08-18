@@ -59,9 +59,10 @@ header h1{font-size:22px}
 
 /* ═══════════ 🏠 홈 대시보드 ═══════════ */
 .home{padding:4px 14px 24px}
-.home-hero{background:linear-gradient(135deg,#F7E5E2,#E9F3F8);border-radius:20px;padding:19px 20px;margin:2px 0 16px;box-shadow:0 2px 9px rgba(92,73,72,.06)}
+.home-hero{width:100%;background:linear-gradient(135deg,#F7E5E2,#E9F3F8);border-radius:20px;padding:19px 20px;margin:2px 0 16px;box-shadow:0 2px 9px rgba(92,73,72,.06);text-align:left}
 .home-hero p{font-size:12px;color:var(--sub);margin-bottom:5px}
 .home-hero h2{font-size:22px;line-height:1.35}
+.home-next-hero{background:linear-gradient(135deg,#FDEAE3,#E7F2F8);cursor:pointer}.home-next-hero>div{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:11px;color:var(--sub);font-size:11.5px}.home-next-hero>div span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.home-next-hero>div b{flex-shrink:0;color:var(--me);font-family:'Jua';font-size:13px}.home-next-hero:active{transform:scale(.99)}
 .home-section{margin:0 0 18px}
 .home-section-head{display:flex;align-items:center;justify-content:space-between;margin:0 3px 8px}
 .home-section-head h3{font-size:16px}
@@ -81,7 +82,7 @@ header h1{font-size:22px}
 .home-empty{background:var(--card);border-radius:16px;padding:18px;text-align:center;color:var(--sub);font-size:13px;line-height:1.65;box-shadow:0 1px 6px rgba(92,73,72,.06)}
 .home-empty button{margin-top:7px;color:var(--me);font-family:'Jua';font-size:14px}
 .home-shortcut-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.home-shortcut-grid button{background:var(--card);border-radius:14px;padding:12px 4px 10px;font-size:11.5px;box-shadow:0 1px 5px rgba(92,73,72,.06)}
+.home-shortcut-grid button{background:var(--card);border-radius:14px;padding:12px 4px 10px;font-size:11.5px;box-shadow:0 1px 5px rgba(92,73,72,.06);border:1px solid transparent}.home-shortcut-grid button:active{transform:scale(.97);border-color:var(--line)}
 .home-shortcut-grid span{display:block;font-size:22px;margin-bottom:4px}
 
 /* ═══════════ ⭐ 위시 ═══════════ */
@@ -198,6 +199,8 @@ header h1{font-size:22px}
 .daygroup{font-family:'Jua';font-size:13.5px;color:var(--sub);margin:14px 18px 2px}
 
 /* ═══════════ 📅 일정 타임라인 ═══════════ */
+.booking-section{margin:6px 14px 2px;padding:14px;background:linear-gradient(135deg,#F5F0FF,#EEF6FB);border:1px solid #E3DAF2;border-radius:18px}.booking-head{display:flex;align-items:center;justify-content:space-between}.booking-head p{font-size:11px;color:var(--sub);margin-bottom:2px}.booking-head h3{font-size:17px}.booking-head>span{font-family:'Jua';font-size:13px;color:#75608A}.booking-actions{display:flex;gap:8px;margin:12px 0 8px}.booking-actions .btn{flex:1;padding:9px;font-size:13px}.booking-actions .flight{background:#E3EFFA;color:#426B91}.booking-actions .stay{background:#FBE9E6;color:#A85E57}.booking-empty{padding:9px 2px 2px;font-size:12px;line-height:1.55;color:var(--sub)}
+.booking-kind{margin:13px 1px 5px;font-family:'Jua';font-size:13px;color:var(--sub)}.booking-card{width:100%;display:flex;gap:10px;margin-top:6px;padding:10px 11px;background:rgba(255,255,255,.88);border-radius:13px;text-align:left;box-shadow:0 1px 4px rgba(92,73,72,.05)}.booking-card:active{transform:scale(.985)}.booking-icon{font-size:21px;line-height:1.4}.booking-copy{min-width:0;flex:1}.booking-copy b,.booking-copy small,.booking-copy strong{display:block}.booking-copy b{font-size:13.5px}.booking-copy small{margin-top:2px;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.booking-copy strong{margin-top:5px;font-family:'Jua';font-size:15px}.booking-copy strong i{font-style:normal;color:var(--sub);margin:0 4px}.booking-copy strong em{margin-left:5px;padding:2px 5px;background:#F5E7DD;border-radius:7px;font-family:'Gowun Dodum';font-style:normal;font-size:10px;color:var(--me)}
 .dayscroll{display:flex;gap:7px;overflow-x:auto;padding:8px 14px 4px}
 .dayscroll::-webkit-scrollbar{display:none}
 .daychip{flex:0 0 auto;text-align:center;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:6px 12px;font-size:12px;color:var(--sub);line-height:1.3}
@@ -343,13 +346,18 @@ nav button:active{transform:scale(.96)}
 .trips-controls{padding:6px 14px 2px;display:flex;flex-direction:column;gap:7px}
 .trips-controls .whofilter{padding:0}
 .trips-new{width:100%;padding:11px}
+.trip-overview{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:8px 14px 2px}.trip-overview>div{background:rgba(255,255,255,.72);border:1px solid var(--line);border-radius:13px;padding:8px 5px;text-align:center}.trip-overview b{display:block;font-family:'Jua';font-size:17px;line-height:1}.trip-overview span{display:block;margin-top:3px;color:var(--sub);font-size:10px}.trip-overview .live{background:#E9F6EE;border-color:#CBE7D5}.trip-overview .live b{color:var(--both)}
 .badge.mix{background:var(--mix)}
 /* 여행 카드: 누구 여행인지 왼쪽 색 띠로 구분 */
-.trip-card{border-left:5px solid var(--line)}
+.trip-card{border-left:5px solid var(--line);padding:13px 15px 12px;transition:transform .16s ease,box-shadow .16s ease}
+.trip-card:active{transform:scale(.985);box-shadow:0 4px 14px rgba(92,73,72,.12)}
 .trip-card.who-both{border-left-color:var(--both)}
 .trip-card.who-me{border-left-color:var(--me)}
 .trip-card.who-pt{border-left-color:var(--pt)}
 .trip-card.who-mix{border-left-color:var(--mix)}
+.trip-card.phase-upcoming{background:linear-gradient(135deg,#fff,#FFF8F0)}.trip-card.phase-ongoing{background:linear-gradient(135deg,#F7FFFA,#EEF9F2)}
+.trip-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}.trip-period{font-size:11.5px;color:var(--sub)}
+.trip-card .dday{position:static;flex-shrink:0;padding:4px 9px;font-size:12px}.trip-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid var(--line);font-size:11px;color:var(--sub)}.trip-tools{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini.muted{opacity:.65}
 /* 여행 탭 세계/한국 토글 */
 #tripToggle{display:flex;gap:8px;padding:2px 0 0}
 #tripToggle button{flex:1;padding:9px 0;border-radius:14px;background:var(--card);border:1.5px solid var(--line);font-size:14px;font-family:'Jua';color:var(--sub)}
@@ -529,7 +537,7 @@ function newTrip(){
   return {
     id: uid('t'), name: '', countries: [], startDate: '', endDate: '',
     who: '',
-    cities: [], plans: [], budget: [], packingGroups: [], packing: [],
+    cities: [], flights: [], stays: [], plans: [], budget: [], packingGroups: [], packing: [],
     review: { blog: '', album: '', memo: '', rating: 0, done: false },
     updatedAt: now()
   };
@@ -805,6 +813,14 @@ function tripDday(t){
   if(diff===0) return { label:'D-DAY', cls:'' };
   return { label:'D-'+diff, cls:'' };
 }
+function tripPhase(t){
+  if(!t.startDate) return 'undated';
+  const today=new Date(); today.setHours(0,0,0,0);
+  const start=new Date(t.startDate+'T00:00:00'),end=new Date((t.endDate||t.startDate)+'T00:00:00');
+  if(today>end) return 'done';
+  if(today>=start) return 'ongoing';
+  return 'upcoming';
+}
 /* 목록 정렬: 예정(가까운 순) → 진행중 → 다녀옴(최근 순) */
 function sortedTrips(){
   const today=new Date(); today.setHours(0,0,0,0);
@@ -827,6 +843,7 @@ function renderTrips(){
   const trips = scoped.filter(tripListWhoPass);
   const worldN=all.filter(t=>!tripIsKorea(t)).length, koreaN=all.filter(t=>tripIsKorea(t)).length;
   const wf=[['all','전체',''],['me','🧑 '+CONFIG.NAME_ME,'me'],['partner','👩 '+CONFIG.NAME_PARTNER,'pt'],['both','💕 같이','both']];
+  const phase={upcoming:0,ongoing:0,done:0,undated:0}; trips.forEach(t=>phase[tripPhase(t)]++);
   let html = `<div class="trips-controls">
     <div id="tripToggle">
       <button class="${tripListScope==='world'?'on':''}" onclick="setTripListScope('world')">🌍 세계 <b>${worldN}</b></button>
@@ -834,7 +851,8 @@ function renderTrips(){
     </div>
     <div class="whofilter">${wf.map(([k,lb,cls])=>`<button class="wf ${cls} ${k===tripListWhoFilter?'on':''}" onclick="setTripListWho('${k}')">${lb}</button>`).join('')}</div>
     <button class="btn primary trips-new" onclick="openTripForm()">+ 새 여행 만들기</button>
-  </div>`;
+  </div>
+  <div class="trip-overview"><div><b>${phase.upcoming}</b><span>준비 중</span></div><div class="live"><b>${phase.ongoing}</b><span>여행 중</span></div><div><b>${phase.done}</b><span>기록 완료</span></div></div>`;
   if(!trips.length){
     html += `<div class="empty-state"><span class="big">🧳</span>
       ${tripListWhoFilter!=='all'?'이 조건의 ':''}${tripListScope==='korea'?'국내':'해외'} 여행이 아직 없어요.<br>새 여행을 만들어볼까요?
@@ -844,18 +862,19 @@ function renderTrips(){
   } else {
     html += trips.map(t=>{
       const dd=tripDday(t), cat=tripWhoCat(t);
-      const flags=(t.countries||[]).map(c=>`<span class="mini">${esc(koName(c))}</span>`).join('');
+      const flags=(t.countries||[]).map(c=>`<span class="mini">${esc(koName(c))}</span>`).join('')||'<span class="mini muted">나라 미정</span>';
       const counts=[];
       if((t.cities||[]).length) counts.push(`📍 ${t.cities.length}`);
       if((t.budget||[]).length) counts.push(`💰 ${t.budget.length}`);
       if((t.plans||[]).length) counts.push(`📅 ${t.plans.length}`);
       if((t.packing||[]).length) counts.push(`🎒 ${t.packing.length}`);
       const rating=t.review&&t.review.rating;
-      return `<div class="trip-card who-${cat}" onclick="openTrip('${t.id}')">
-        <span class="dday ${dd.cls}">${dd.label}</span>
+      const days=tripDays(t);
+      return `<div class="trip-card who-${cat} phase-${tripPhase(t)}" onclick="openTrip('${t.id}')">
+        <div class="trip-card-top"><span class="trip-period">${esc(fmtPeriod(t))}</span><span class="dday ${dd.cls}">${dd.label}</span></div>
         <div class="tname">${esc(t.name)||'(이름 없음)'}${rating?` <span class="card-stars">${reviewStarsMini(rating)}</span>`:''}</div>
-        <div class="tmeta">${fmtPeriod(t)}${counts.length?' · '+counts.join('  '):''}</div>
         <div class="tflags">${flags}</div>
+        <div class="trip-card-bottom"><span>${days?`${Math.max(0,days-1)}박 ${days}일`:'기간 미정'}</span>${counts.length?`<span class="trip-tools">${counts.join('  ')}</span>`:''}</div>
       </div>`;
     }).join('');
   }
@@ -1030,7 +1049,7 @@ function deleteCurrentTrip(){
   if(!confirm(`"${t.name||'이 여행'}"을(를) 삭제할까요?\n일정·가계부·준비물도 함께 지워져요.`)) return;
   // 여행과 하위 항목 id 전부 삭제 기록 (서버 병합에서 제외)
   markDeleted(t.id);
-  ['cities','plans','budget','packingGroups','packing'].forEach(k=>(t[k]||[]).forEach(x=>markDeleted(x.id)));
+  ['cities','flights','stays','plans','budget','packingGroups','packing'].forEach(k=>(t[k]||[]).forEach(x=>markDeleted(x.id)));
   state.trips=state.trips.filter(x=>x.id!==t.id);
   persist();
   closeTrip();
@@ -1819,9 +1838,8 @@ function ensureBudgetDom(){
 </script>
 <script>
 /* ═══════════════════════════════════════════════
-   schedule.js — 📅 일정 (여행 상세 안 서브탭)
-   날짜별 타임라인 카드 (지하철 노선도 느낌 · 시간순)
-   plan: {id, date, time, title, cat, memo, updatedAt}
+   schedule.js — 📅 일정
+   예약 정보(항공편·숙소) + 날짜별 타임라인
    ═══════════════════════════════════════════════ */
 const PLAN_CATS=[['이동','🚗','#6B84B0'],['숙소','🏨','#B06B6B'],['식사','🍽️','#CBB85C'],['관광','📸','#5FAE7E'],['기타','📌','#8A7B9E']];
 const planIcon=c=>{const f=PLAN_CATS.find(x=>x[0]===c);return f?f[1]:'📌';};
@@ -1830,120 +1848,104 @@ const WD=['일','월','화','수','목','금','토'];
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function tripDates(t){
   if(!t.startDate) return [];
-  const out=[]; let d=new Date(t.startDate+'T00:00:00'); const end=new Date((t.endDate||t.startDate)+'T00:00:00');
-  while(d<=end){ out.push(ymd(d)); d.setDate(d.getDate()+1); }
-  return out;
+  const out=[],d=new Date(t.startDate+'T00:00:00'),end=new Date((t.endDate||t.startDate)+'T00:00:00');
+  while(d<=end){out.push(ymd(d));d.setDate(d.getDate()+1);} return out;
 }
+function scheduleDates(t){
+  const dates=[...tripDates(t),(t.plans||[]).map(p=>p.date),(t.flights||[]).flatMap(f=>[f.departDate,f.arriveDate]),(t.stays||[]).flatMap(s=>[s.checkIn,s.checkOut])].flat().filter(Boolean);
+  return [...new Set(dates)].sort();
+}
+function stayNights(s){
+  if(!s.checkIn||!s.checkOut) return '';
+  const n=Math.round((new Date(s.checkOut+'T00:00:00')-new Date(s.checkIn+'T00:00:00'))/86400000);
+  return n>0?`${n}박`:'당일';
+}
+function bookingDate(date,time){return [date?fmtDate(date):'',time||''].filter(Boolean).join(' · ')||'날짜 미정';}
 let curPlanDay=null;
 
-function renderPlans(trip, body){
-  const days=tripDates(trip);
-  // 기간 밖 날짜(직접 입력)도 칩에 포함
-  const extra=[...new Set((trip.plans||[]).map(p=>p.date).filter(d=>d&&!days.includes(d)))].sort();
-  const allDays=[...days,...extra];
-  const noDate=(trip.plans||[]).some(p=>!p.date);
-  if(!allDays.includes(curPlanDay) && curPlanDay!=='') curPlanDay = allDays[0] || '';
-
-  let html='';
-  if(allDays.length || noDate){
-    html+=`<div class="dayscroll">`;
-    allDays.forEach((d,i)=>{
-      const dt=new Date(d+'T00:00:00');
-      html+=`<div class="daychip${d===curPlanDay?' on':''}" onclick="setPlanDay('${d}')">Day ${i+1}<b>${dt.getMonth()+1}.${dt.getDate()} ${WD[dt.getDay()]}</b></div>`;
-    });
-    if(noDate) html+=`<div class="daychip${curPlanDay===''?' on':''}" onclick="setPlanDay('')">미정<b>날짜없음</b></div>`;
-    html+=`</div>`;
-  }
+function renderBookings(trip){
+  const flights=[...(trip.flights||[])].sort((a,b)=>`${a.departDate||''}${a.departTime||''}`.localeCompare(`${b.departDate||''}${b.departTime||''}`));
+  const stays=[...(trip.stays||[])].sort((a,b)=>(a.checkIn||'').localeCompare(b.checkIn||''));
+  let html=`<section class="booking-section"><div class="booking-head"><div><p>여행 예약 정보</p><h3>교통 · 숙소</h3></div><span>✈️ ${flights.length} · 🏨 ${stays.length}</span></div>
+    <div class="booking-actions"><button class="btn flight" onclick="openFlightForm('${trip.id}')">+ 항공편</button><button class="btn stay" onclick="openStayForm('${trip.id}')">+ 숙소</button></div>`;
+  if(!flights.length&&!stays.length) html+=`<div class="booking-empty">항공편과 숙소를 먼저 넣으면 일정의 큰 흐름을 한눈에 볼 수 있어요.</div>`;
+  if(flights.length){html+=`<div class="booking-kind">✈️ 항공편</div>`;flights.forEach(f=>{html+=`<button class="booking-card flight-card" onclick="openFlightForm('${trip.id}','${f.id}')"><span class="booking-icon">✈️</span><span class="booking-copy"><b>${esc([f.airline,f.flightNo].filter(Boolean).join(' ')||'항공편')}</b><small>${esc(bookingDate(f.departDate,f.departTime))}${f.arriveDate||f.arriveTime?` → ${esc(bookingDate(f.arriveDate,f.arriveTime))}`:''}</small><strong>${esc(f.from||'출발지')} <i>→</i> ${esc(f.to||'도착지')}</strong></span></button>`;});}
+  if(stays.length){html+=`<div class="booking-kind">🏨 숙소</div>`;stays.forEach(s=>{html+=`<button class="booking-card stay-card" onclick="openStayForm('${trip.id}','${s.id}')"><span class="booking-icon">🏨</span><span class="booking-copy"><b>${esc(s.name)||'이름 없는 숙소'}</b><small>${esc(s.city||'지역 미정')} · ${esc(s.confirmation||'예약번호 미정')}</small><strong>${esc(s.checkIn?fmtDate(s.checkIn):'체크인 미정')} <i>→</i> ${esc(s.checkOut?fmtDate(s.checkOut):'체크아웃 미정')} ${stayNights(s)?`<em>${stayNights(s)}</em>`:''}</strong></span></button>`;});}
+  return html+'</section>';
+}
+function renderPlans(trip,body){
+  const allDays=scheduleDates(trip),noDate=(trip.plans||[]).some(p=>!p.date);
+  if(!allDays.includes(curPlanDay)&&curPlanDay!=='') curPlanDay=allDays[0]||'';
+  let html=renderBookings(trip);
+  if(allDays.length||noDate){html+=`<div class="dayscroll">`;allDays.forEach((d,i)=>{const dt=new Date(d+'T00:00:00');html+=`<div class="daychip${d===curPlanDay?' on':''}" onclick="setPlanDay('${d}')">Day ${i+1}<b>${dt.getMonth()+1}.${dt.getDate()} ${WD[dt.getDay()]}</b></div>`;});if(noDate)html+=`<div class="daychip${curPlanDay===''?' on':''}" onclick="setPlanDay('')">미정<b>날짜없음</b></div>`;html+=`</div>`;}
   html+=`<div class="fab-row"><button class="btn primary" onclick="openPlanForm('${trip.id}')">+ 일정 추가</button></div>`;
-
   const items=(trip.plans||[]).filter(p=>(p.date||'')===curPlanDay).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
-  if(!items.length){
-    html+=`<div class="empty-state"><span class="big">📅</span>이 날의 일정이 없어요.<br>일정을 추가해볼까요?</div>`;
-  } else {
-    html+=`<div class="tl">`;
-    items.forEach(p=>{
-      html+=`<div class="tl-item" onclick="openPlanForm('${trip.id}','${p.id}')">
-        <span class="dot" style="background:${planColor(p.cat)}"></span>
-        <div class="tl-time">${p.time?esc(p.time):'시간 미정'}</div>
-        <div class="tl-card"><div class="tt">${planIcon(p.cat)} ${esc(p.title)||'(제목 없음)'}</div>
-          <div class="tcat">${esc(p.cat||'기타')}</div>
-          ${p.memo?`<div class="tm">${esc(p.memo)}</div>`:''}</div>
-      </div>`;
-    });
-    html+=`</div>`;
-  }
+  if(!items.length)html+=`<div class="empty-state"><span class="big">📅</span>이 날의 일정이 없어요.<br>일정을 추가해볼까요?</div>`;
+  else{html+=`<div class="tl">`;items.forEach(p=>{html+=`<div class="tl-item" onclick="openPlanForm('${trip.id}','${p.id}')"><span class="dot" style="background:${planColor(p.cat)}"></span><div class="tl-time">${p.time?esc(p.time):'시간 미정'}</div><div class="tl-card"><div class="tt">${planIcon(p.cat)} ${esc(p.title)||'(제목 없음)'}</div><div class="tcat">${esc(p.cat||'기타')}</div>${p.memo?`<div class="tm">${esc(p.memo)}</div>`:''}</div></div>`;});html+=`</div>`;}
   body.innerHTML=html;
 }
-function setPlanDay(d){ curPlanDay=d; renderTripDetail(); }
+function setPlanDay(d){curPlanDay=d;renderTripDetail();}
 
-/* ── 폼 ── */
+/* ── 일반 일정 폼 ── */
 let planForm={tripId:null,editId:null,cat:'관광'};
 function openPlanForm(tripId,planId){
-  ensurePlanDom();
-  const t=getTrip(tripId); const p=planId?(t.plans||[]).find(x=>x.id===planId):null;
+  ensurePlanDom();const t=getTrip(tripId),p=planId?(t.plans||[]).find(x=>x.id===planId):null;
   planForm={tripId,editId:planId||null,cat:p?p.cat||'관광':'관광'};
-  document.getElementById('pf-title2').textContent=p?'일정 수정':'일정 추가';
-  document.getElementById('pf-title').value=p?p.title||'':'';
-  document.getElementById('pf-date').value=p?p.date||'':(curPlanDay||t.startDate||'');
-  document.getElementById('pf-time').value=p?p.time||'':'';
-  document.getElementById('pf-memo').value=p?p.memo||'':'';
-  renderPlanCats();
-  document.getElementById('pf-delrow').style.display=planId?'flex':'none';
-  document.getElementById('planSheetBg').classList.add('show');
-  document.getElementById('planSheet').classList.add('show');
-  if(!p) setTimeout(()=>document.getElementById('pf-title').focus(),80);
+  document.getElementById('pf-title2').textContent=p ? '일정 수정' : '일정 추가';
+  document.getElementById('pf-title').value=p ? (p.title||'') : '';
+  document.getElementById('pf-date').value=p ? (p.date||'') : (curPlanDay||t.startDate||'');
+  document.getElementById('pf-time').value=p ? (p.time||'') : '';
+  document.getElementById('pf-memo').value=p ? (p.memo||'') : '';
+  renderPlanCats();document.getElementById('pf-delrow').style.display=planId?'flex':'none';document.getElementById('planSheetBg').classList.add('show');document.getElementById('planSheet').classList.add('show');if(!p)setTimeout(()=>document.getElementById('pf-title').focus(),80);
 }
 function closePlanForm(){document.getElementById('planSheetBg').classList.remove('show');document.getElementById('planSheet').classList.remove('show');}
 function setPlanCat(c){planForm.cat=c;renderPlanCats();}
-function renderPlanCats(){
-  document.getElementById('pf-cats').innerHTML=PLAN_CATS.map(([c,ic])=>
-    `<button class="chip${c===planForm.cat?' on both':''}" onclick="setPlanCat('${c}')">${ic} ${c}</button>`).join('');
-}
+function renderPlanCats(){document.getElementById('pf-cats').innerHTML=PLAN_CATS.map(([c,ic])=>`<button class="chip${c===planForm.cat?' on both':''}" onclick="setPlanCat('${c}')">${ic} ${c}</button>`).join('');}
 function savePlan(){
-  const t=getTrip(planForm.tripId); if(!t) return;
-  const title=document.getElementById('pf-title').value.trim();
-  const date=document.getElementById('pf-date').value;
-  const time=document.getElementById('pf-time').value;
-  const memo=document.getElementById('pf-memo').value.trim();
-  if(!title){toast('일정 내용을 입력해주세요');return;}
-  if(planForm.editId){
-    const p=t.plans.find(x=>x.id===planForm.editId);
-    Object.assign(p,{title,date,time,cat:planForm.cat,memo}); stamp(p);
-  } else {
-    t.plans.push(stamp({id:uid('p'),title,date,time,cat:planForm.cat,memo}));
-  }
-  stamp(t); persist(); closePlanForm();
-  curPlanDay=date||'';   // 저장한 날짜로 이동
-  renderTripDetail(); toast('저장했어요 📅');
+  const t=getTrip(planForm.tripId),title=document.getElementById('pf-title').value.trim(),date=document.getElementById('pf-date').value,time=document.getElementById('pf-time').value,memo=document.getElementById('pf-memo').value.trim();if(!t)return;if(!title){toast('일정 내용을 입력해주세요');return;}
+  if(planForm.editId){const p=t.plans.find(x=>x.id===planForm.editId);Object.assign(p,{title,date,time,cat:planForm.cat,memo});stamp(p);}else t.plans.push(stamp({id:uid('p'),title,date,time,cat:planForm.cat,memo}));
+  stamp(t);persist();closePlanForm();curPlanDay=date||'';renderTripDetail();toast('저장했어요 📅');
 }
-function deletePlan(){
-  if(!planForm.editId) return;
-  if(!confirm('이 일정을 지울까요?')) return;
-  const t=getTrip(planForm.tripId); markDeleted(planForm.editId);
-  t.plans=t.plans.filter(x=>x.id!==planForm.editId); stamp(t); persist();
-  closePlanForm(); renderTripDetail(); toast('지웠어요');
+function deletePlan(){if(!planForm.editId)return;if(!confirm('이 일정을 지울까요?'))return;const t=getTrip(planForm.tripId);markDeleted(planForm.editId);t.plans=t.plans.filter(x=>x.id!==planForm.editId);stamp(t);persist();closePlanForm();renderTripDetail();toast('지웠어요');}
+
+/* ── 항공편 폼 ── */
+let flightForm={tripId:null,editId:null};
+function openFlightForm(tripId,id){
+  ensurePlanDom();const t=getTrip(tripId),f=id?(t.flights||[]).find(x=>x.id===id):null;flightForm={tripId,editId:id||null};
+  document.getElementById('ff-title').textContent=f?'항공편 수정':'항공편 추가';['airline','flightNo','from','to','departDate','departTime','arriveDate','arriveTime','confirmation','memo'].forEach(k=>document.getElementById(`ff-${k}`).value=f?f[k]||'':'');document.getElementById('ff-delrow').style.display=id?'flex':'none';document.getElementById('flightSheetBg').classList.add('show');document.getElementById('flightSheet').classList.add('show');if(!f)setTimeout(()=>document.getElementById('ff-airline').focus(),80);
 }
+function closeFlightForm(){document.getElementById('flightSheetBg').classList.remove('show');document.getElementById('flightSheet').classList.remove('show');}
+function onFlightDepartDate(){const d=document.getElementById('ff-departDate').value,a=document.getElementById('ff-arriveDate');a.min=d;if(d&&(!a.value||a.value<d))a.value=d;}
+function saveFlight(){
+  const t=getTrip(flightForm.tripId);if(!t)return;const v={};['airline','flightNo','from','to','departDate','departTime','arriveDate','arriveTime','confirmation','memo'].forEach(k=>v[k]=document.getElementById(`ff-${k}`).value.trim());if(!v.from||!v.to){toast('출발지와 도착지를 입력해주세요');return;}if(v.arriveDate&&v.departDate&&v.arriveDate<v.departDate){toast('도착일이 출발일보다 빨라요');return;}
+  if(flightForm.editId){const f=t.flights.find(x=>x.id===flightForm.editId);Object.assign(f,v);stamp(f);}
+  else {t.flights=t.flights||[];t.flights.push(stamp({id:uid('f'),...v}));}
+  stamp(t);persist();closeFlightForm();curPlanDay=v.departDate||curPlanDay;renderTripDetail();toast('항공편을 저장했어요 ✈️');
+}
+function deleteFlight(){if(!flightForm.editId)return;if(!confirm('이 항공편을 지울까요?'))return;const t=getTrip(flightForm.tripId);markDeleted(flightForm.editId);t.flights=t.flights.filter(x=>x.id!==flightForm.editId);stamp(t);persist();closeFlightForm();renderTripDetail();toast('항공편을 삭제했어요');}
+
+/* ── 숙소 폼 ── */
+let stayForm={tripId:null,editId:null};
+function openStayForm(tripId,id){
+  ensurePlanDom();const t=getTrip(tripId),s=id?(t.stays||[]).find(x=>x.id===id):null;stayForm={tripId,editId:id||null};
+  document.getElementById('sf-title').textContent=s?'숙소 수정':'숙소 추가';['name','city','checkIn','checkOut','confirmation','memo'].forEach(k=>document.getElementById(`sf-${k}`).value=s?s[k]||'':'');document.getElementById('sf-delrow').style.display=id?'flex':'none';document.getElementById('staySheetBg').classList.add('show');document.getElementById('staySheet').classList.add('show');if(!s)setTimeout(()=>document.getElementById('sf-name').focus(),80);
+}
+function closeStayForm(){document.getElementById('staySheetBg').classList.remove('show');document.getElementById('staySheet').classList.remove('show');}
+function onStayCheckIn(){const d=document.getElementById('sf-checkIn').value,o=document.getElementById('sf-checkOut');o.min=d;if(d&&(!o.value||o.value<d)){const n=new Date(d+'T00:00:00');n.setDate(n.getDate()+1);o.value=ymd(n);}}
+function saveStay(){
+  const t=getTrip(stayForm.tripId);if(!t)return;const v={};['name','city','checkIn','checkOut','confirmation','memo'].forEach(k=>v[k]=document.getElementById(`sf-${k}`).value.trim());if(!v.name){toast('숙소 이름을 입력해주세요');return;}if(v.checkIn&&v.checkOut&&v.checkOut<v.checkIn){toast('체크아웃 날짜가 체크인보다 빨라요');return;}
+  if(stayForm.editId){const s=t.stays.find(x=>x.id===stayForm.editId);Object.assign(s,v);stamp(s);}
+  else {t.stays=t.stays||[];t.stays.push(stamp({id:uid('s'),...v}));}
+  stamp(t);persist();closeStayForm();curPlanDay=v.checkIn||curPlanDay;renderTripDetail();toast('숙소를 저장했어요 🏨');
+}
+function deleteStay(){if(!stayForm.editId)return;if(!confirm('이 숙소를 지울까요?'))return;const t=getTrip(stayForm.tripId);markDeleted(stayForm.editId);t.stays=t.stays.filter(x=>x.id!==stayForm.editId);stamp(t);persist();closeStayForm();renderTripDetail();toast('숙소를 삭제했어요');}
 
 function ensurePlanDom(){
-  if(document.getElementById('planSheet')) return;
-  const w=document.createElement('div');
-  w.innerHTML=`
-  <div class="sheet-bg" id="planSheetBg" onclick="closePlanForm()"></div>
-  <div class="sheet" id="planSheet"><div class="grab"></div><div class="body">
-    <h2 id="pf-title2">일정 추가</h2>
-    <div class="form">
-      <label>내용</label>
-      <input id="pf-title" placeholder="예: 후에 궁성 관광">
-      <label>분류</label>
-      <div class="chips" id="pf-cats"></div>
-      <label>날짜 / 시간</label>
-      <div class="daterow"><input id="pf-date" type="date"><input id="pf-time" type="time"></div>
-      <label>메모 (선택)</label>
-      <input id="pf-memo" placeholder="예: 입장료 15만동, 오후 더움">
-      <div class="btnrow"><button class="btn ghost" onclick="closePlanForm()">취소</button><button class="btn primary" onclick="savePlan()">저장</button></div>
-      <div class="btnrow" id="pf-delrow"><button class="btn ghost" style="color:var(--me)" onclick="deletePlan()">🗑️ 삭제</button></div>
-    </div>
-  </div></div>`;
+  if(document.getElementById('planSheet'))return;
+  const w=document.createElement('div');w.innerHTML=`
+  <div class="sheet-bg" id="planSheetBg" onclick="closePlanForm()"></div><div class="sheet" id="planSheet"><div class="grab"></div><div class="body"><h2 id="pf-title2">일정 추가</h2><div class="form"><label>내용</label><input id="pf-title" placeholder="예: 후에 궁성 관광"><label>분류</label><div class="chips" id="pf-cats"></div><label>날짜 / 시간</label><div class="daterow"><input id="pf-date" type="date"><input id="pf-time" type="time"></div><label>메모 (선택)</label><input id="pf-memo" placeholder="예: 입장료 15만동, 오후 더움"><div class="btnrow"><button class="btn ghost" onclick="closePlanForm()">취소</button><button class="btn primary" onclick="savePlan()">저장</button></div><div class="btnrow" id="pf-delrow"><button class="btn ghost" style="color:var(--me)" onclick="deletePlan()">🗑️ 삭제</button></div></div></div></div>
+  <div class="sheet-bg" id="flightSheetBg" onclick="closeFlightForm()"></div><div class="sheet" id="flightSheet"><div class="grab"></div><div class="body"><h2 id="ff-title">항공편 추가</h2><div class="form"><label>항공사 / 편명 (선택)</label><div class="daterow"><input id="ff-airline" placeholder="예: 대한항공"><input id="ff-flightNo" placeholder="예: KE123"></div><label>구간</label><div class="daterow"><input id="ff-from" placeholder="출발 공항·도시"><input id="ff-to" placeholder="도착 공항·도시"></div><label>출발</label><div class="daterow"><input id="ff-departDate" type="date" onchange="onFlightDepartDate()"><input id="ff-departTime" type="time"></div><label>도착</label><div class="daterow"><input id="ff-arriveDate" type="date"><input id="ff-arriveTime" type="time"></div><label>예약번호 (선택)</label><input id="ff-confirmation" placeholder="예: ABC123"><label>메모 (선택)</label><input id="ff-memo" placeholder="예: 온라인 체크인 24시간 전"><div class="btnrow"><button class="btn ghost" onclick="closeFlightForm()">취소</button><button class="btn primary" onclick="saveFlight()">저장</button></div><div class="btnrow" id="ff-delrow"><button class="btn ghost" style="color:var(--me)" onclick="deleteFlight()">🗑️ 삭제</button></div></div></div></div>
+  <div class="sheet-bg" id="staySheetBg" onclick="closeStayForm()"></div><div class="sheet" id="staySheet"><div class="grab"></div><div class="body"><h2 id="sf-title">숙소 추가</h2><div class="form"><label>숙소 이름</label><input id="sf-name" placeholder="예: 다낭 인터컨티넨탈"><label>도시·지역 (선택)</label><input id="sf-city" placeholder="예: 다낭, 미케비치"><label>체크인 / 체크아웃</label><div class="daterow"><input id="sf-checkIn" type="date" onchange="onStayCheckIn()"><input id="sf-checkOut" type="date"></div><label>예약번호 (선택)</label><input id="sf-confirmation" placeholder="예: HOTEL-1234"><label>메모 (선택)</label><input id="sf-memo" placeholder="예: 조식 포함, 오후 3시 체크인"><div class="btnrow"><button class="btn ghost" onclick="closeStayForm()">취소</button><button class="btn primary" onclick="saveStay()">저장</button></div><div class="btnrow" id="sf-delrow"><button class="btn ghost" style="color:var(--me)" onclick="deleteStay()">🗑️ 삭제</button></div></div></div></div>`;
   document.body.appendChild(w);
 }
 </script>
@@ -2139,10 +2141,14 @@ function renderHome(){
   const stats=homeStats(), meP=personStats('me'), ptP=personStats('partner'), today=homeToday(), trips=state.trips||[];
   const upcoming=trips.filter(t=>t.startDate&&(t.endDate||t.startDate)>=today).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||''))[0];
   const recent=trips.filter(t=>(t.endDate||t.startDate||'')&&(t.endDate||t.startDate)<today).sort((a,b)=>(b.endDate||b.startDate).localeCompare(a.endDate||a.startDate))[0];
-  scr.innerHTML=`<div class="home"><section class="home-hero"><p>윤호와 가진의 여행 기록</p><h2>다음 여행도<br>우리답게 채워가요 💕</h2></section>
+  const heroLabel=upcoming&&tripPhase(upcoming)==='ongoing'?'지금의 여정':'다가오는 여정';
+  const hero=upcoming
+    ? `<button class="home-hero home-next-hero" onclick="homeOpenTrip('${upcoming.id}')"><p>${heroLabel} · ${esc(tripDday(upcoming).label)}</p><h2>${esc(upcoming.name)||'이름 없는 여행'}</h2><div><span>${esc((upcoming.countries||[]).map(koName).join(' · ')||'나라 미정')} · ${esc(fmtPeriod(upcoming))}</span><b>${heroLabel==='지금의 여정'?'일정 보기':'일정 준비하기'} →</b></div></button>`
+    : `<section class="home-hero"><p>윤호와 가진의 여행 기록</p><h2>다음 여행도<br>우리답게 채워가요 💕</h2></section>`;
+  scr.innerHTML=`<div class="home">${hero}
     <section class="home-section"><div class="home-section-head"><h3>우리의 발자국</h3><button onclick="openHomeReport('all')">리포트 보기 →</button></div><button class="home-stats home-report-link" onclick="openHomeReport('all')"><div><b>${stats.trips.length}</b><span>번 여행</span></div><div><b>${stats.countries}</b><span>개국</span></div><div><b>${stats.cities}</b><span>도시</span></div><div><b>${stats.days}</b><span>일</span></div></button></section>
     <section class="home-section"><div class="home-section-head"><h3>각자의 발자국</h3><small>같이 간 여행 포함</small></div><div class="person-stats"><button class="person-card me" onclick="openHomeReport('me')"><div class="ph">🧑 ${CONFIG.NAME_ME}</div><div class="pnums"><span><b>${meP.trips.length}</b>회</span><span><b>${meP.countries}</b>개국</span><span><b>${meP.days}</b>일</span></div><small>리포트 보기 →</small></button><button class="person-card pt" onclick="openHomeReport('partner')"><div class="ph">👩 ${CONFIG.NAME_PARTNER}</div><div class="pnums"><span><b>${ptP.trips.length}</b>회</span><span><b>${ptP.countries}</b>개국</span><span><b>${ptP.days}</b>일</span></div><small>리포트 보기 →</small></button></div></section>
-    <section class="home-section"><div class="home-section-head"><h3>${upcoming?'다가오는 여행':'여행 계획'}</h3><button onclick="switchTab('trips')">전체 보기 →</button></div>${upcoming?homeTripCard(upcoming,'upcoming'):`<div class="home-empty">🧳 아직 정해진 여행이 없어요.<br><button onclick="switchTab('trips')">새 여행 만들기</button></div>`}</section>${recent?`<section class="home-section"><div class="home-section-head"><h3>최근 여행</h3><button onclick="switchTab('trips')">전체 보기 →</button></div>${homeTripCard(recent,'recent')}</section>`:''}</div>`;
+    ${upcoming?'':`<section class="home-section"><div class="home-section-head"><h3>여행 계획</h3><button onclick="switchTab('trips')">전체 보기 →</button></div><div class="home-empty">🧳 아직 정해진 여행이 없어요.<br><button onclick="openTripForm()">새 여행 만들기</button></div></section>`}${recent?`<section class="home-section"><div class="home-section-head"><h3>최근 여행</h3><button onclick="switchTab('trips')">전체 보기 →</button></div>${homeTripCard(recent,'recent')}</section>`:''}</div>`;
 }
 </script>
 <script>
