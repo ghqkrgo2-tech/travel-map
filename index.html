@@ -1154,11 +1154,27 @@ function initMap(){
   map.on('zoomend',()=>{ if(mapScope==='korea')renderKoreaLabels(); else renderWorldLabels(); });
   map.setView([25,60],2);
   mapInited=true;
+  // 지도 영역 크기가 바뀔 때마다(통계칩 로드·탭 표시·폰트 등) Leaflet 크기 자동 보정
+  // → 안 하면 캐시된 크기로 좌표를 계산해 확대 시 라벨/지도가 어긋남
+  if(window.ResizeObserver){
+    let raf=null;
+    new ResizeObserver(()=>{
+      cancelAnimationFrame(raf);
+      raf=requestAnimationFrame(()=>{
+        if(!map) return;
+        const s=map.getSize(), el=map.getContainer();
+        if(el.clientWidth && el.clientHeight && (s.x!==el.clientWidth || s.y!==el.clientHeight)){
+          map.invalidateSize({animate:false});
+          if(mapScope==='korea') renderKoreaLabels(); else renderWorldLabels();
+        }
+      });
+    }).observe(map.getContainer());
+  }
 }
 function renderMap(){
   ensureMapDom();
   if(!mapInited) initMap();
-  setTimeout(()=>map&&map.invalidateSize(),60);   // 숨겨졌다 보일 때 크기 보정
+  setTimeout(()=>{ if(map){ map.invalidateSize({animate:false}); if(mapScope==='korea')renderKoreaLabels(); else renderWorldLabels(); } },60);
   drawMap();
 }
 async function drawMap(){
