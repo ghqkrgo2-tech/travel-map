@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>우리 여행 지도</title>
@@ -42,7 +42,7 @@ small{color:var(--sub)}
 #lock .msg{color:var(--me);font-size:13px;height:16px}
 
 /* ── 셸: 헤더 / 화면 / 탭바 ── */
-#app{display:none;flex-direction:column;height:100%}
+#app{display:none;flex-direction:column;height:100%;height:100dvh;padding-bottom:max(10px,env(safe-area-inset-bottom))}
 header{padding:14px 16px 8px;flex-shrink:0}
 header .top{display:flex;align-items:center;justify-content:space-between}
 header h1{font-size:22px}
@@ -219,9 +219,12 @@ header h1{font-size:22px}
 .pack-prog .pl b{font-family:'Jua';color:var(--both);font-size:15px}
 .pack-bar{height:9px;background:var(--line);border-radius:6px;overflow:hidden}
 .pack-bar>span{display:block;height:100%;background:var(--both);border-radius:6px;transition:width .3s}
+.pack-actions{display:flex;gap:8px;padding:8px 14px 4px}.pack-actions .btn{flex:1;padding:10px 8px}
 .pack-group{margin:12px 14px 0}
-.pack-ghead{display:flex;align-items:center;justify-content:space-between;font-family:'Jua';font-size:15px;margin-bottom:4px}
+.pack-ghead{display:flex;align-items:center;gap:6px;font-family:'Jua';font-size:15px;margin-bottom:4px}.pack-ghead>span:first-child{min-width:0;flex:1}
 .pack-ghead .gc{font-size:12px;color:var(--sub);font-family:'Gowun Dodum'}
+.pack-gactions{display:flex;gap:3px}.pack-gactions button,.pack-empty button{font-family:'Gowun Dodum';font-size:11px;color:var(--sub);padding:4px 5px;border-radius:7px;background:var(--card)}.pack-gactions button:first-child,.pack-empty button{color:var(--both)}
+.pack-empty{margin-top:7px;padding:12px 13px;border:1.5px dashed var(--line);border-radius:12px;color:var(--sub);font-size:12px}
 .pack-item{display:flex;align-items:center;gap:11px;background:var(--card);border-radius:12px;padding:11px 13px;margin-top:7px;box-shadow:0 1px 4px rgba(92,73,72,.05)}
 .pack-item .chk{width:23px;height:23px;border-radius:7px;border:2px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
 .pack-item.done .chk{background:var(--both);border-color:var(--both)}
@@ -230,11 +233,12 @@ header h1{font-size:22px}
 .pack-item .pi-who{font-size:10.5px;color:#fff;border-radius:8px;padding:2px 8px;flex-shrink:0}
 .pack-item .pi-del{color:var(--sub);font-size:15px;flex-shrink:0}
 
-/* ── 하단 4탭 ── */
-nav{display:flex;background:var(--card);border-top:1.5px solid var(--line);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;padding:10px 0 8px;font-size:11.5px;color:var(--sub);display:flex;flex-direction:column;align-items:center;gap:2px}
-nav button .ic{font-size:21px}
-nav button.on{color:var(--me)}
+/* ── iPhone 제스처 영역에서 분리한 하단 플로팅 도크 ── */
+nav{display:flex;gap:3px;margin:0 10px;background:rgba(255,255,255,.97);border:1.5px solid var(--line);border-radius:20px;box-shadow:0 5px 18px rgba(92,73,72,.13);flex-shrink:0;padding:6px}
+nav button{flex:1;min-height:52px;padding:6px 2px;font-size:11.5px;color:var(--sub);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;border-radius:14px;touch-action:manipulation}
+nav button .ic{font-size:22px;line-height:1}
+nav button.on{color:var(--me);background:var(--me-soft);font-family:'Jua'}
+nav button:active{transform:scale(.96)}
 
 /* ── 공용 컴포넌트 ── */
 .card{background:var(--card);border-radius:16px;padding:12px 14px;margin:10px 14px;box-shadow:0 1px 6px rgba(92,73,72,.06)}
@@ -525,7 +529,7 @@ function newTrip(){
   return {
     id: uid('t'), name: '', countries: [], startDate: '', endDate: '',
     who: '',
-    cities: [], plans: [], budget: [], packing: [],
+    cities: [], plans: [], budget: [], packingGroups: [], packing: [],
     review: { blog: '', album: '', memo: '', rating: 0, done: false },
     updatedAt: now()
   };
@@ -1026,7 +1030,7 @@ function deleteCurrentTrip(){
   if(!confirm(`"${t.name||'이 여행'}"을(를) 삭제할까요?\n일정·가계부·준비물도 함께 지워져요.`)) return;
   // 여행과 하위 항목 id 전부 삭제 기록 (서버 병합에서 제외)
   markDeleted(t.id);
-  ['cities','plans','budget','packing'].forEach(k=>(t[k]||[]).forEach(x=>markDeleted(x.id)));
+  ['cities','plans','budget','packingGroups','packing'].forEach(k=>(t[k]||[]).forEach(x=>markDeleted(x.id)));
   state.trips=state.trips.filter(x=>x.id!==t.id);
   persist();
   closeTrip();
@@ -1945,115 +1949,116 @@ function ensurePlanDom(){
 </script>
 <script>
 /* ═══════════════════════════════════════════════
-   packing.js — 🎒 준비물 (여행 상세 안 서브탭)
-   목록(그룹)별 물건 + 담당(공용/윤호/가진) + 체크박스
-   packing item: {id, group, item, who:"공용|윤호|가진", checked, updatedAt}
+   packing.js — 🎒 준비물
+   항목(packingGroups) → 짐(packing) 2단계 구조
+   기존 packing.group 문자열 데이터도 가상 항목으로 읽어 호환한다.
    ═══════════════════════════════════════════════ */
 const PACK_WHO=[['공용','💕','var(--both)'],['윤호','🧑','var(--me)'],['가진','👩','var(--pt)']];
 const packWhoColor=w=>{const f=PACK_WHO.find(x=>x[0]===w);return f?f[2]:'var(--sub)';};
+function packingGroups(trip){
+  const groups=[...(trip.packingGroups||[])];
+  const known=new Set(groups.map(g=>g.name));
+  (trip.packing||[]).forEach(x=>{
+    const name=x.group||'기타';
+    if(!known.has(name)){ groups.push({id:`legacy:${name}`,name,legacy:true}); known.add(name); }
+  });
+  return groups;
+}
+function packItemGroupId(x){ return x.groupId || (x.group?`legacy:${x.group}`:''); }
+function packItemsForGroup(trip,group){
+  return (trip.packing||[]).filter(x=>packItemGroupId(x)===group.id || (!x.groupId&&x.group===group.name));
+}
+function packGroupById(trip,id){ return packingGroups(trip).find(g=>g.id===id); }
 
-function renderPacking(trip, body){
-  const list=trip.packing||[];
-  const total=list.length, done=list.filter(x=>x.checked).length;
-  const pct=total?Math.round(done/total*100):0;
-  let html=`<div class="pack-prog">
-    <div class="pl"><span>챙긴 준비물</span><span><b>${done}</b> / ${total}</span></div>
-    <div class="pack-bar"><span style="width:${pct}%"></span></div>
-  </div>
-  <div class="fab-row"><button class="btn primary" onclick="openPackForm('${trip.id}')">+ 준비물 추가</button></div>`;
-
-  if(!total){
-    html+=`<div class="empty-state"><span class="big">🎒</span>목록을 만들고 챙길 물건을<br>담아보세요. (예: 2번칸)</div>`;
-  } else {
-    const shown=list;
-    if(!shown.length){ body.innerHTML=html+`<div class="empty-state"><span class="big">🎒</span>이 조건에 맞는 준비물이 없어요.</div>`; return; }
-    // 그룹별 묶기 (등장 순서 유지)
-    const groups=[]; const gmap={};
-    shown.forEach(x=>{ const g=x.group||'기타'; if(!gmap[g]){gmap[g]=[];groups.push(g);} gmap[g].push(x); });
+function renderPacking(trip,body){
+  const list=trip.packing||[], groups=packingGroups(trip);
+  const total=list.length, done=list.filter(x=>x.checked).length, pct=total?Math.round(done/total*100):0;
+  let html=`<div class="pack-prog"><div class="pl"><span>챙긴 짐</span><span><b>${done}</b> / ${total}</span></div><div class="pack-bar"><span style="width:${pct}%"></span></div></div>
+    <div class="pack-actions"><button class="btn ghost" onclick="openPackGroupForm('${trip.id}')">+ 항목 추가</button><button class="btn primary" onclick="openPackForm('${trip.id}')">+ 짐 추가</button></div>`;
+  if(!groups.length){
+    html+=`<div class="empty-state"><span class="big">🧳</span>먼저 짐을 분류할 <b>항목</b>을 만들어요.<br><small>예: 기내용, 세면도구, 2번 칸</small><div class="fab-row"><button class="btn primary" onclick="openPackGroupForm('${trip.id}')">첫 항목 추가</button></div></div>`;
+  }else{
     groups.forEach(g=>{
-      const items=gmap[g];
-      const gd=items.filter(x=>x.checked).length;
-      html+=`<div class="pack-group"><div class="pack-ghead"><span>🧳 ${esc(g)}</span><span class="gc">${gd}/${items.length}</span></div>`;
-      items.forEach(x=>{
-        html+=`<div class="pack-item${x.checked?' done':''}">
-          <div class="chk" onclick="togglePack('${trip.id}','${x.id}')">${x.checked?'✓':''}</div>
-          <span class="pi-name" onclick="openPackForm('${trip.id}','${x.id}')">${esc(x.item)||'(이름 없음)'}</span>
-          <span class="pi-who" style="background:${packWhoColor(x.who)}">${esc(x.who||'공용')}</span>
-          <button class="pi-del" onclick="deletePack('${trip.id}','${x.id}')">🗑️</button>
-        </div>`;
-      });
-      html+=`</div>`;
+      const items=packItemsForGroup(trip,g), gd=items.filter(x=>x.checked).length;
+      html+=`<section class="pack-group"><div class="pack-ghead"><span>🧳 ${esc(g.name)}</span><span class="gc">${gd}/${items.length}</span><div class="pack-gactions"><button onclick="openPackForm('${trip.id}',null,'${g.id.replace(/'/g,"\\'")}')">+ 짐</button>${g.legacy?'':`<button onclick="openPackGroupForm('${trip.id}','${g.id}')">수정</button><button onclick="deletePackGroup('${trip.id}','${g.id}')">삭제</button>`}</div></div>`;
+      if(!items.length) html+=`<div class="pack-empty">아직 담은 짐이 없어요. <button onclick="openPackForm('${trip.id}',null,'${g.id.replace(/'/g,"\\'")}')">짐 추가</button></div>`;
+      else items.forEach(x=>{ html+=`<div class="pack-item${x.checked?' done':''}"><div class="chk" onclick="togglePack('${trip.id}','${x.id}')">${x.checked?'✓':''}</div><span class="pi-name" onclick="openPackForm('${trip.id}','${x.id}')">${esc(x.item)||'(이름 없음)'}</span><span class="pi-who" style="background:${packWhoColor(x.who)}">${esc(x.who||'공용')}</span><button class="pi-del" onclick="deletePack('${trip.id}','${x.id}')">🗑️</button></div>`; });
+      html+=`</section>`;
     });
   }
   body.innerHTML=html;
 }
 function togglePack(tripId,itemId){
-  const t=getTrip(tripId); const x=(t.packing||[]).find(i=>i.id===itemId); if(!x) return;
+  const t=getTrip(tripId),x=(t?.packing||[]).find(i=>i.id===itemId); if(!x) return;
   x.checked=!x.checked; stamp(x); stamp(t); persist(); renderTripDetail();
 }
 
-/* ── 폼 ── */
-let packForm={tripId:null,editId:null,who:'공용'};
-function openPackForm(tripId,itemId){
-  ensurePackDom();
-  const t=getTrip(tripId); const x=itemId?(t.packing||[]).find(i=>i.id===itemId):null;
-  packForm={tripId,editId:itemId||null,who:x?x.who||'공용':'공용'};
-  document.getElementById('kf-title2').textContent=x?'준비물 수정':'준비물 추가';
+/* ── 항목 폼 ── */
+let packGroupForm={tripId:null,editId:null};
+function openPackGroupForm(tripId,groupId){
+  ensurePackDom(); const t=getTrip(tripId), g=groupId?(t.packingGroups||[]).find(x=>x.id===groupId):null;
+  packGroupForm={tripId,editId:groupId||null};
+  document.getElementById('pg-title').textContent=g?'항목 수정':'항목 추가';
+  document.getElementById('pg-name').value=g?g.name:'';
+  document.getElementById('packGroupSheetBg').classList.add('show'); document.getElementById('packGroupSheet').classList.add('show');
+  setTimeout(()=>document.getElementById('pg-name').focus(),80);
+}
+function closePackGroupForm(){document.getElementById('packGroupSheetBg').classList.remove('show');document.getElementById('packGroupSheet').classList.remove('show');}
+function savePackGroup(){
+  const t=getTrip(packGroupForm.tripId), name=document.getElementById('pg-name').value.trim(); if(!t) return;
+  if(!name){toast('항목 이름을 입력해주세요');return;}
+  const duplicate=packingGroups(t).some(g=>g.id!==packGroupForm.editId&&g.name===name);
+  if(duplicate){toast('같은 이름의 항목이 이미 있어요');return;}
+  t.packingGroups=t.packingGroups||[];
+  if(packGroupForm.editId){
+    const g=t.packingGroups.find(x=>x.id===packGroupForm.editId); if(!g) return;
+    const old=g.name; g.name=name; stamp(g);
+    (t.packing||[]).filter(x=>x.groupId===g.id||(!x.groupId&&x.group===old)).forEach(x=>{x.groupId=g.id;x.group=name;stamp(x);});
+  }else t.packingGroups.push(stamp({id:uid('pg'),name}));
+  stamp(t); persist(); closePackGroupForm(); renderTripDetail(); toast('항목을 저장했어요');
+}
+function deletePackGroup(tripId,groupId){
+  const t=getTrip(tripId),g=(t?.packingGroups||[]).find(x=>x.id===groupId); if(!g) return;
+  if(packItemsForGroup(t,g).length){toast('이 항목의 짐을 먼저 다른 항목으로 옮기거나 삭제해주세요');return;}
+  if(!confirm(`"${g.name}" 항목을 삭제할까요?`)) return;
+  markDeleted(g.id); t.packingGroups=t.packingGroups.filter(x=>x.id!==groupId); stamp(t); persist(); renderTripDetail(); toast('항목을 삭제했어요');
+}
+
+/* ── 짐 폼 ── */
+let packForm={tripId:null,editId:null,groupId:'',who:'공용'};
+function openPackForm(tripId,itemId,groupId){
+  ensurePackDom(); const t=getTrip(tripId), groups=packingGroups(t), x=itemId?(t.packing||[]).find(i=>i.id===itemId):null;
+  if(!groups.length){toast('먼저 항목을 추가해주세요');openPackGroupForm(tripId);return;}
+  packForm={tripId,editId:itemId||null,groupId:x?packItemGroupId(x):(groupId||groups[0].id),who:x?x.who||'공용':'공용'};
+  document.getElementById('kf-title2').textContent=x?'짐 수정':'짐 추가';
   document.getElementById('kf-item').value=x?x.item||'':'';
-  document.getElementById('kf-group').value=x?x.group||'':'';
-  // 기존 그룹 목록 datalist
-  const groups=[...new Set((t.packing||[]).map(i=>i.group).filter(Boolean))];
-  document.getElementById('kf-groups').innerHTML=groups.map(g=>`<option value="${esc(g)}">`).join('');
-  renderPackWho();
-  document.getElementById('kf-delrow').style.display=itemId?'flex':'none';
-  document.getElementById('packSheetBg').classList.add('show');
-  document.getElementById('packSheet').classList.add('show');
+  document.getElementById('kf-group').innerHTML=groups.map(g=>`<option value="${esc(g.id)}"${g.id===packForm.groupId?' selected':''}>${esc(g.name)}</option>`).join('');
+  renderPackWho(); document.getElementById('kf-delrow').style.display=itemId?'flex':'none';
+  document.getElementById('packSheetBg').classList.add('show');document.getElementById('packSheet').classList.add('show');
   if(!x) setTimeout(()=>document.getElementById('kf-item').focus(),80);
 }
 function closePackForm(){document.getElementById('packSheetBg').classList.remove('show');document.getElementById('packSheet').classList.remove('show');}
 function setPackWho(w){packForm.who=w;renderPackWho();}
-function renderPackWho(){
-  document.getElementById('kf-who').innerHTML=PACK_WHO.map(([w,ic])=>
-    `<button class="chip${w===packForm.who?' on both':''}" onclick="setPackWho('${w}')">${ic} ${w}</button>`).join('');
-}
+function renderPackWho(){document.getElementById('kf-who').innerHTML=PACK_WHO.map(([w,ic])=>`<button class="chip${w===packForm.who?' on both':''}" onclick="setPackWho('${w}')">${ic} ${w}</button>`).join('');}
 function savePack(){
-  const t=getTrip(packForm.tripId); if(!t) return;
-  const item=document.getElementById('kf-item').value.trim();
-  const group=document.getElementById('kf-group').value.trim()||'기타';
-  if(!item){toast('준비물 이름을 입력해주세요');return;}
-  if(packForm.editId){
-    const x=t.packing.find(i=>i.id===packForm.editId);
-    Object.assign(x,{item,group,who:packForm.who}); stamp(x);
-  } else {
-    t.packing.push(stamp({id:uid('k'),item,group,who:packForm.who,checked:false}));
-  }
-  stamp(t); persist(); closePackForm(); renderTripDetail(); toast('저장했어요 🎒');
+  const t=getTrip(packForm.tripId),item=document.getElementById('kf-item').value.trim(),groupId=document.getElementById('kf-group').value,group=packGroupById(t,groupId); if(!t) return;
+  if(!item){toast('짐 이름을 입력해주세요');return;} if(!group){toast('항목을 선택해주세요');return;}
+  const groupData={group:group.name,groupId:group.legacy?'':group.id,who:packForm.who};
+  if(packForm.editId){const x=t.packing.find(i=>i.id===packForm.editId);Object.assign(x,{item,...groupData});stamp(x);}
+  else t.packing.push(stamp({id:uid('k'),item,...groupData,checked:false}));
+  stamp(t);persist();closePackForm();renderTripDetail();toast('짐을 저장했어요 🎒');
 }
 function deletePack(tripId,itemId){
-  if(!confirm('이 준비물을 지울까요?')) return;
-  const t=getTrip(tripId); markDeleted(itemId);
-  t.packing=t.packing.filter(i=>i.id!==itemId); stamp(t); persist(); renderTripDetail(); toast('지웠어요');
+  if(!confirm('이 짐을 지울까요?')) return;
+  const t=getTrip(tripId);markDeleted(itemId);t.packing=t.packing.filter(i=>i.id!==itemId);stamp(t);persist();renderTripDetail();toast('지웠어요');
 }
-
 function ensurePackDom(){
   if(document.getElementById('packSheet')) return;
-  const w=document.createElement('div');
-  w.innerHTML=`
+  const w=document.createElement('div'); w.innerHTML=`
+  <div class="sheet-bg" id="packGroupSheetBg" onclick="closePackGroupForm()"></div>
+  <div class="sheet" id="packGroupSheet"><div class="grab"></div><div class="body"><h2 id="pg-title">항목 추가</h2><div class="form"><label>항목 이름</label><input id="pg-name" placeholder="예: 기내용, 세면도구, 2번 칸"><div class="btnrow"><button class="btn ghost" onclick="closePackGroupForm()">취소</button><button class="btn primary" onclick="savePackGroup()">저장</button></div></div></div></div>
   <div class="sheet-bg" id="packSheetBg" onclick="closePackForm()"></div>
-  <div class="sheet" id="packSheet"><div class="grab"></div><div class="body">
-    <h2 id="kf-title2">준비물 추가</h2>
-    <div class="form">
-      <label>목록 (칸/카테고리)</label>
-      <input id="kf-group" list="kf-groups" placeholder="예: 2번칸, 세면도구, 기내">
-      <datalist id="kf-groups"></datalist>
-      <label>준비물</label>
-      <input id="kf-item" placeholder="예: 변환 어댑터">
-      <label>담당</label>
-      <div class="chips" id="kf-who"></div>
-      <div class="btnrow"><button class="btn ghost" onclick="closePackForm()">취소</button><button class="btn primary" onclick="savePack()">저장</button></div>
-      <div class="btnrow" id="kf-delrow"><button class="btn ghost" style="color:var(--me)" onclick="deletePack(packForm.tripId,packForm.editId)">🗑️ 삭제</button></div>
-    </div>
-  </div></div>`;
+  <div class="sheet" id="packSheet"><div class="grab"></div><div class="body"><h2 id="kf-title2">짐 추가</h2><div class="form"><label>항목</label><select id="kf-group"></select><label>짐</label><input id="kf-item" placeholder="예: 변환 어댑터"><label>담당</label><div class="chips" id="kf-who"></div><div class="btnrow"><button class="btn ghost" onclick="closePackForm()">취소</button><button class="btn primary" onclick="savePack()">저장</button></div><div class="btnrow" id="kf-delrow"><button class="btn ghost" style="color:var(--me)" onclick="deletePack(packForm.tripId,packForm.editId)">🗑️ 삭제</button></div></div></div></div>`;
   document.body.appendChild(w);
 }
 </script>
